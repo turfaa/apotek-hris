@@ -12,15 +12,16 @@ var WorkLogForPatient = template.Must(template.New("work_log_for_patient.html").
 
 type WorkLogForPatientData struct {
 	PatientName  string
+	Date         string
 	Place        string
 	EmployeeName string
-	Units        []WorkLogUnitForPatient
+	Units        []WorkLogUnitForPatientData
 	Notes        string
-	CreatedAt    string
 }
 
-type WorkLogUnitForPatient struct {
+type WorkLogUnitForPatientData struct {
 	WorkType    string
 	WorkOutcome string
 	OutcomeUnit string
+	Notes       string
 }

@@ -1,0 +1,1 @@
+ALTER TABLE work_types ADD COLUMN notes TEXT NOT NULL DEFAULT '';

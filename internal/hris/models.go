@@ -24,12 +24,14 @@ type WorkType struct {
 	Name        string          `db:"name" json:"name"`
 	OutcomeUnit string          `db:"outcome_unit" json:"outcomeUnit"`
 	Multiplier  decimal.Decimal `db:"multiplier" json:"multiplier"`
+	Notes       string          `db:"notes" json:"notes"`
 }
 
 type CreateWorkTypeRequest struct {
 	Name        string          `json:"name" validate:"required"`
 	OutcomeUnit string          `json:"outcomeUnit"`
 	Multiplier  decimal.Decimal `json:"multiplier" validate:"dgte=0"`
+	Notes       string          `json:"notes"`
 }
 
 type WorkLog struct {

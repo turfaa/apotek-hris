@@ -127,12 +127,13 @@ func (h *Handler) PrintWorkLogForPatient(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	units := make([]templates.WorkLogUnitForPatient, len(workLog.Units))
+	units := make([]templates.WorkLogUnitForPatientData, len(workLog.Units))
 	for i, unit := range workLog.Units {
-		units[i] = templates.WorkLogUnitForPatient{
+		units[i] = templates.WorkLogUnitForPatientData{
 			WorkType:    unit.WorkType.Name,
 			WorkOutcome: unit.WorkOutcome,
 			OutcomeUnit: unit.WorkType.OutcomeUnit,
+			Notes:       unit.WorkType.Notes,
 		}
 	}
 
@@ -142,7 +143,7 @@ func (h *Handler) PrintWorkLogForPatient(w http.ResponseWriter, r *http.Request)
 		EmployeeName: workLog.Employee.Name,
 		Units:        units,
 		Notes:        "Untuk hasil yang lebih akurat, silakan lakukan tes kembali di laboratorium terdekat.",
-		CreatedAt:    timex.FormatDateTime(workLog.CreatedAt),
+		Date:         timex.FormatDate(workLog.CreatedAt),
 	})
 }
 

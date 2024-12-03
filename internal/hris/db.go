@@ -240,7 +240,8 @@ func (d *DB) CreateWorkLogUnitsWithQueryer(ctx context.Context, queryer Queryer,
 		wt.id AS "work_type.id",
 		wt.name AS "work_type.name",
 		wt.outcome_unit AS "work_type.outcome_unit",
-		wt.multiplier AS "work_type.multiplier"
+		wt.multiplier AS "work_type.multiplier",
+		wt.notes AS "work_type.notes"
 	FROM inserted_work_log_units iwl
 	JOIN work_types wt ON iwl.work_type_id = wt.id`
 	query = queryer.Rebind(query)
@@ -256,7 +257,7 @@ func (d *DB) CreateWorkLogUnitsWithQueryer(ctx context.Context, queryer Queryer,
 
 	var workLogUnits []WorkLogUnit
 	if err := queryer.SelectContext(ctx, &workLogUnits, query, args...); err != nil {
-		return nil, fmt.Errorf("select context from db: %w", err)
+		return []WorkLogUnit{}, fmt.Errorf("select context from db: %w", err)
 	}
 
 	return workLogUnits, nil
@@ -275,40 +276,40 @@ func (d *DB) GetWorkLogUnitsByWorkLogIDs(ctx context.Context, workLogIDs []int64
 	query := `
 	SELECT 
 		wlu.id AS "id",
-		wlu.work_log_id AS "work_log_id",
 		wlu.work_outcome AS "work_outcome",
+		wlu.work_log_id,
+		wt.id AS "work_type.id",
 		wt.name AS "work_type.name",
 		wt.outcome_unit AS "work_type.outcome_unit",
-		wt.multiplier AS "work_type.multiplier"
+		wt.multiplier AS "work_type.multiplier",
+		wt.notes AS "work_type.notes"
 	FROM work_log_units wlu
 	JOIN work_types wt ON wlu.work_type_id = wt.id
-	WHERE wlu.work_log_id IN (?)`
-	query, args, err := sqlx.In(query, workLogIDs)
-	if err != nil {
-		return nil, fmt.Errorf("sqlx in: %w", err)
-	}
+	WHERE wlu.work_log_id = ANY(?)`
 	query = d.db.Rebind(query)
+	args := []any{workLogIDs}
 
-	type Res struct {
+	type workLogUnitWithWorkLogID struct {
 		WorkLogUnit
 		WorkLogID int64 `db:"work_log_id"`
 	}
-	var workLogUnits []Res
+
+	var workLogUnits []workLogUnitWithWorkLogID
 	if err := d.db.SelectContext(ctx, &workLogUnits, query, args...); err != nil {
 		return nil, fmt.Errorf("select context from db: %w", err)
 	}
 
-	workLogUnitsByWorkLogID := make(map[int64][]WorkLogUnit, len(workLogIDs))
+	result := make(map[int64][]WorkLogUnit)
 	for _, workLogUnit := range workLogUnits {
-		workLogUnitsByWorkLogID[workLogUnit.WorkLogID] = append(workLogUnitsByWorkLogID[workLogUnit.WorkLogID], workLogUnit.WorkLogUnit)
+		result[workLogUnit.WorkLogID] = append(result[workLogUnit.WorkLogID], workLogUnit.WorkLogUnit)
 	}
 
-	return workLogUnitsByWorkLogID, nil
+	return result, nil
 }
 
 func (d *DB) GetWorkTypes(ctx context.Context) ([]WorkType, error) {
 	query := `
-	SELECT id, name, outcome_unit, multiplier
+	SELECT id, name, outcome_unit, multiplier, notes
 	FROM work_types`
 	query = d.db.Rebind(query)
 
@@ -342,11 +343,11 @@ func (d *DB) GetWorkTypeQueryer(ctx context.Context, queryer Queryer, id int64) 
 
 func (d *DB) CreateWorkType(ctx context.Context, request CreateWorkTypeRequest) (WorkType, error) {
 	query := `
-	INSERT INTO work_types (name, outcome_unit, multiplier) 
-	VALUES (?, ?, ?) 
-	RETURNING id, name, outcome_unit, multiplier`
+	INSERT INTO work_types (name, outcome_unit, multiplier, notes)
+	VALUES (?, ?, ?, ?)
+	RETURNING id, name, outcome_unit, multiplier, notes`
 	query = d.db.Rebind(query)
-	args := []any{request.Name, request.OutcomeUnit, request.Multiplier}
+	args := []any{request.Name, request.OutcomeUnit, request.Multiplier, request.Notes}
 
 	var workType WorkType
 	if err := d.db.GetContext(ctx, &workType, query, args...); err != nil {
