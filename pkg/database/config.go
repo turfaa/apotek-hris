@@ -8,12 +8,12 @@ import (
 )
 
 type Config struct {
-	Host     string `mapstructure:"host"`
-	Port     int    `mapstructure:"port"`
-	User     string `mapstructure:"user"`
-	Password string `mapstructure:"password"`
-	DBName   string `mapstructure:"db_name"`
-	SSLMode  string `mapstructure:"ssl_mode"`
+	Host     string `mapstructure:"host" validate:"required"`
+	Port     int    `mapstructure:"port" validate:"required"`
+	User     string `mapstructure:"user" validate:"required"`
+	Password string `mapstructure:"password" validate:"required"`
+	DBName   string `mapstructure:"db_name" validate:"required"`
+	SSLMode  string `mapstructure:"ssl_mode" validate:"required"`
 }
 
 func NewConnection(cfg Config) (*sqlx.DB, error) {
