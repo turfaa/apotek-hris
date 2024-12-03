@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: monospace;
+            width: 76mm;
+            margin: 0;
+            padding: 10px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+        .divider {
+            border-top: 1px dashed #000;
+            margin: 10px 0;
+        }
+        @media print {
+            @page {
+                margin: 0;
+                size: 76mm auto;
+            }
+        }
+    </style>
+    <script>
+        window.onload = function() {
+            window.print();
+            window.onafterprint = function() {
+                window.close();
+            };
+        };
+    </script>
+</head>
+<body>
+    <div class="header">
+        <h2>Catatan Hasil Tes</h2>
+    </div>
+
+    <div class="row">
+        <span>Nama:</span>
+        <span>{{.PatientName}}</span>
+    </div>
+
+    <div class="row">
+        <span>Waktu:</span>
+        <span>{{.CreatedAt}}</span>
+    </div>
+
+    <div class="row">
+        <span>Tempat:</span>
+        <span>{{.Place}}</span>
+    </div>
+
+    <div class="row">
+        <span>Petugas:</span>
+        <span>{{.EmployeeName}}</span>
+    </div>
+
+    <div class="divider" />
+
+    {{range .Units}}
+        <div class="row">
+            <span>{{.WorkType}}</span>
+            <span>{{.WorkOutcome}} {{.OutcomeUnit}}</span>
+        </div>
+    {{end}}
+
+    <div class="divider" />
+    <div>
+        <strong>Catatan:</strong><br>
+        {{.Notes}}
+    </div>
+</body>
+</html>
