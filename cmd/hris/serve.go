@@ -9,7 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/turfaa/apotek-hris/internal/config"
 	"github.com/turfaa/apotek-hris/pkg/database"
 	"github.com/turfaa/apotek-hris/pkg/server"
 
@@ -20,11 +19,6 @@ var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "Start the HTTP server",
 	Run: func(cmd *cobra.Command, args []string) {
-		cfg, err := config.Load(configFile)
-		if err != nil {
-			log.Fatalf("Failed to load config: %v", err)
-		}
-
 		db, err := database.NewConnection(cfg.Database)
 		if err != nil {
 			log.Fatalf("Failed to connect to database: %v", err)

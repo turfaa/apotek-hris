@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	configFile string
-	cfg        config.Config
+	configFiles []string
+	cfg         config.Config
 
 	rootCmd = &cobra.Command{
 		Use:   "apotek-hris",
@@ -21,10 +21,10 @@ var (
 )
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "config/config.yaml", "config file path")
+	rootCmd.PersistentFlags().StringSliceVarP(&configFiles, "config", "c", []string{"config/config.yaml", "config/secret.yaml"}, "config file paths")
 
 	var err error
-	cfg, err = config.Load(configFile)
+	cfg, err = config.Load(configFiles...)
 	if err != nil {
 		panic(err)
 	}

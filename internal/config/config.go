@@ -15,16 +15,19 @@ type Config struct {
 	Server   server.Config   `mapstructure:"server" validate:"required"`
 }
 
-func Load(configPath string) (Config, error) {
-	viper.SetConfigFile(configPath)
-	viper.AutomaticEnv()
+func Load(configPaths ...string) (Config, error) {
+	v := viper.New()
+	v.AutomaticEnv()
 
-	if err := viper.ReadInConfig(); err != nil {
-		return Config{}, fmt.Errorf("error reading config file: %w", err)
+	for _, configPath := range configPaths {
+		v.SetConfigFile(configPath)
+		if err := v.MergeInConfig(); err != nil {
+			return Config{}, fmt.Errorf("error reading config file %s: %w", configPath, err)
+		}
 	}
 
 	var cfg Config
-	if err := viper.Unmarshal(&cfg); err != nil {
+	if err := v.Unmarshal(&cfg); err != nil {
 		return Config{}, fmt.Errorf("error unmarshaling config: %w", err)
 	}
 
