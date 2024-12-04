@@ -8,6 +8,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/spf13/cobra"
+	"github.com/turfaa/apotek-hris/internal/config"
 )
 
 var migrateCmd = &cobra.Command{
@@ -20,7 +21,12 @@ var migrateUpCmd = &cobra.Command{
 	Use:   "up",
 	Short: "Run migrations up",
 	Run: func(cmd *cobra.Command, args []string) {
-		m, err := getMigrator()
+		cfg, err := config.Load(configFiles...)
+		if err != nil {
+			log.Fatalf("Failed to load config: %v", err)
+		}
+
+		m, err := getMigrator(cfg)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -36,7 +42,12 @@ var migrateDownCmd = &cobra.Command{
 	Use:   "down",
 	Short: "Rollback migrations",
 	Run: func(cmd *cobra.Command, args []string) {
-		m, err := getMigrator()
+		cfg, err := config.Load(configFiles...)
+		if err != nil {
+			log.Fatalf("Failed to load config: %v", err)
+		}
+
+		m, err := getMigrator(cfg)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -54,7 +65,7 @@ func init() {
 	rootCmd.AddCommand(migrateCmd)
 }
 
-func getMigrator() (*migrate.Migrate, error) {
+func getMigrator(cfg config.Config) (*migrate.Migrate, error) {
 	dbURL := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
 		cfg.Database.User, cfg.Database.Password, cfg.Database.Host,
 		cfg.Database.Port, cfg.Database.DBName, cfg.Database.SSLMode)

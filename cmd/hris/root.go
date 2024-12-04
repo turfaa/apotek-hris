@@ -4,14 +4,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/turfaa/apotek-hris/internal/config"
-
 	"github.com/spf13/cobra"
 )
 
 var (
 	configFiles []string
-	cfg         config.Config
 
 	rootCmd = &cobra.Command{
 		Use:   "apotek-hris",
@@ -22,12 +19,6 @@ var (
 
 func init() {
 	rootCmd.PersistentFlags().StringSliceVarP(&configFiles, "config", "c", []string{"config/config.yaml", "config/secret.yaml"}, "config file paths")
-
-	var err error
-	cfg, err = config.Load(configFiles...)
-	if err != nil {
-		panic(err)
-	}
 }
 
 func Execute() error {
