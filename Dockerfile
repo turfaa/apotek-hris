@@ -19,6 +19,7 @@ FROM --platform=${BUILDPLATFORM:-linux/amd64} gcr.io/distroless/static-debian12 
 WORKDIR /
 
 COPY --from=build /hris /hris
+COPY --from=build /app/migrations /migrations
 
 USER nonroot:nonroot
 
