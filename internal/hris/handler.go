@@ -16,6 +16,15 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+const (
+	headerEmployeeID = "X-Employee-ID"
+)
+
+var (
+	ErrMissingEmployeeID = errors.New("missing employee ID in header")
+	ErrInvalidEmployeeID = errors.New("invalid employee ID in header")
+)
+
 type Handler struct {
 	service *Service
 }
@@ -147,9 +156,44 @@ func (h *Handler) PrintWorkLogForPatient(w http.ResponseWriter, r *http.Request)
 	})
 }
 
+func (h *Handler) DeleteWorkLog(w http.ResponseWriter, r *http.Request) {
+	workLogIDStr := chi.URLParam(r, "workLogID")
+	if workLogIDStr == "" {
+		httpx.Error(w, errors.New("workLogID is required"), http.StatusBadRequest)
+		return
+	}
+
+	workLogID, err := strconv.ParseInt(workLogIDStr, 10, 64)
+	if err != nil {
+		httpx.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	employeeIDStr := r.Header.Get(headerEmployeeID)
+	if employeeIDStr == "" {
+		httpx.Error(w, ErrMissingEmployeeID, http.StatusBadRequest)
+		return
+	}
+
+	employeeID, err := strconv.ParseInt(employeeIDStr, 10, 64)
+	if err != nil {
+		httpx.Error(w, ErrInvalidEmployeeID, http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.DeleteWorkLog(r.Context(), workLogID, employeeID); err != nil {
+		httpServiceError(w, err)
+		return
+	}
+
+	httpx.Ok(w, map[string]string{"message": "successfully deleted the work log"})
+}
+
 func httpServiceError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
+		httpx.Error(w, err, http.StatusNotFound)
+	case errors.Is(err, ErrWorkLogNotFound):
 		httpx.Error(w, err, http.StatusNotFound)
 	case errors.As(err, &validatorx.ValidationErrors{}):
 		httpx.Error(w, err, http.StatusBadRequest)

@@ -2,6 +2,7 @@ package hris
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -9,6 +10,8 @@ import (
 
 	"github.com/jmoiron/sqlx"
 )
+
+var ErrWorkLogNotFound = errors.New("work log not found")
 
 type Service struct {
 	db *DB
@@ -91,4 +94,18 @@ func (s *Service) CreateWorkLog(ctx context.Context, request CreateWorkLogReques
 	}
 
 	return workLog, nil
+}
+
+func (s *Service) DeleteWorkLog(ctx context.Context, workLogID, employeeID int64) error {
+	// Verify that the work log exists and is not deleted
+	_, err := s.db.GetWorkLog(ctx, workLogID)
+	if err != nil {
+		return fmt.Errorf("get work log: %w", err)
+	}
+
+	if err := s.db.DeleteWorkLog(ctx, workLogID, employeeID); err != nil {
+		return fmt.Errorf("delete work log: %w", err)
+	}
+
+	return nil
 }

@@ -22,4 +22,5 @@ func (h *Handler) registerWorkLogRoutes(r chi.Router) {
 	r.Get("/", h.GetWorkLogs)
 	r.Post("/", h.CreateWorkLog)
 	r.Get("/{workLogID}/for-patient", h.PrintWorkLogForPatient)
+	r.Delete("/{workLogID}", h.DeleteWorkLog)
 }

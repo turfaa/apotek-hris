@@ -40,26 +40,34 @@ type WorkLog struct {
 	PatientName string        `db:"patient_name" json:"patientName"`
 	Units       []WorkLogUnit `db:"-" json:"units"`
 	CreatedAt   time.Time     `db:"created_at" json:"createdAt"`
+	DeletedAt   *time.Time    `db:"deleted_at" json:"deletedAt,omitempty"`
+	DeletedBy   *int64        `db:"deleted_by" json:"deletedBy,omitempty"`
 }
 
 type WorkLogUnit struct {
-	ID          int64    `json:"id" db:"id"`
-	WorkType    WorkType `json:"workType" db:"work_type"`
-	WorkOutcome string   `json:"workOutcome" db:"work_outcome"`
+	ID          int64      `json:"id" db:"id"`
+	WorkType    WorkType   `json:"workType" db:"work_type"`
+	WorkOutcome string     `json:"workOutcome" db:"work_outcome"`
+	DeletedAt   *time.Time `db:"deleted_at" json:"deletedAt,omitempty"`
+	DeletedBy   *int64     `db:"deleted_by" json:"deletedBy,omitempty"`
 }
 
 type DBWorkLog struct {
-	ID          int64     `db:"id"`
-	EmployeeID  int64     `db:"employee_id"`
-	PatientName string    `db:"patient_name"`
-	CreatedAt   time.Time `db:"created_at"`
+	ID          int64      `db:"id"`
+	EmployeeID  int64      `db:"employee_id"`
+	PatientName string     `db:"patient_name"`
+	CreatedAt   time.Time  `db:"created_at"`
+	DeletedAt   *time.Time `db:"deleted_at"`
+	DeletedBy   *int64     `db:"deleted_by"`
 }
 
 type DBWorkLogUnit struct {
-	ID          int64  `db:"id"`
-	WorkLogID   int64  `db:"work_log_id"`
-	WorkTypeID  int64  `db:"work_type_id"`
-	WorkOutcome string `db:"work_outcome"`
+	ID          int64      `db:"id"`
+	WorkLogID   int64      `db:"work_log_id"`
+	WorkTypeID  int64      `db:"work_type_id"`
+	WorkOutcome string     `db:"work_outcome"`
+	DeletedAt   *time.Time `db:"deleted_at"`
+	DeletedBy   *int64     `db:"deleted_by"`
 }
 
 type CreateWorkLogRequest struct {

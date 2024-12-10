@@ -2,6 +2,7 @@ package hris
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -16,6 +17,7 @@ type DB struct {
 type Queryer interface {
 	GetContext(ctx context.Context, dest any, query string, args ...any) error
 	SelectContext(ctx context.Context, dest any, query string, args ...any) error
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 	Rebind(query string) string
 }
 
@@ -107,7 +109,7 @@ func (d *DB) GetWorkLogsBetween(ctx context.Context, startDate time.Time, endDat
 
 	query := `
 	SELECT 
-		wl.id, wl.patient_name, wl.created_at, 
+		wl.id, wl.patient_name, wl.created_at, wl.deleted_at, wl.deleted_by,
 		e.id AS "employee.id",
 		e.name AS "employee.name",
 		e.shift_fee AS "employee.shift_fee",
@@ -115,7 +117,8 @@ func (d *DB) GetWorkLogsBetween(ctx context.Context, startDate time.Time, endDat
 		e.updated_at AS "employee.updated_at"
 	FROM work_logs wl
 	JOIN employees e ON wl.employee_id = e.id
-	WHERE wl.created_at BETWEEN ? AND ?`
+	WHERE wl.deleted_at IS NULL
+	AND wl.created_at BETWEEN ? AND ?`
 	query = d.db.Rebind(query)
 	args := []any{startDate, endDate}
 
@@ -149,7 +152,7 @@ func (d *DB) GetWorkLogsBetween(ctx context.Context, startDate time.Time, endDat
 func (d *DB) GetWorkLog(ctx context.Context, id int64) (WorkLog, error) {
 	query := `
 	SELECT 
-		wl.id, wl.patient_name, wl.created_at, 
+		wl.id, wl.patient_name, wl.created_at, wl.deleted_at, wl.deleted_by,
 		e.id AS "employee.id",
 		e.name AS "employee.name",
 		e.shift_fee AS "employee.shift_fee",
@@ -157,7 +160,7 @@ func (d *DB) GetWorkLog(ctx context.Context, id int64) (WorkLog, error) {
 		e.updated_at AS "employee.updated_at"
 	FROM work_logs wl
 	JOIN employees e ON wl.employee_id = e.id
-	WHERE wl.id = ?`
+	WHERE wl.deleted_at IS NULL AND wl.id = ?`
 	query = d.db.Rebind(query)
 	args := []any{id}
 
@@ -278,6 +281,8 @@ func (d *DB) GetWorkLogUnitsByWorkLogIDs(ctx context.Context, workLogIDs []int64
 		wlu.id AS "id",
 		wlu.work_outcome AS "work_outcome",
 		wlu.work_log_id,
+		wlu.deleted_at,
+		wlu.deleted_by,
 		wt.id AS "work_type.id",
 		wt.name AS "work_type.name",
 		wt.outcome_unit AS "work_type.outcome_unit",
@@ -285,7 +290,7 @@ func (d *DB) GetWorkLogUnitsByWorkLogIDs(ctx context.Context, workLogIDs []int64
 		wt.notes AS "work_type.notes"
 	FROM work_log_units wlu
 	JOIN work_types wt ON wlu.work_type_id = wt.id
-	WHERE wlu.work_log_id = ANY(?)`
+	WHERE wlu.deleted_at IS NULL AND wlu.work_log_id = ANY(?)`
 	query = d.db.Rebind(query)
 	args := []any{workLogIDs}
 
@@ -355,4 +360,68 @@ func (d *DB) CreateWorkType(ctx context.Context, request CreateWorkTypeRequest) 
 	}
 
 	return workType, nil
+}
+
+func (d *DB) DeleteWorkLog(ctx context.Context, id int64, employeeID int64) error {
+	tx, err := d.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		} else {
+			_ = tx.Commit()
+		}
+	}()
+
+	if err := d.softDeleteWorkLogUnits(ctx, tx, id, employeeID); err != nil {
+		return fmt.Errorf("soft delete work log units: %w", err)
+	}
+
+	if err := d.softDeleteWorkLog(ctx, tx, id, employeeID); err != nil {
+		return fmt.Errorf("soft delete work log: %w", err)
+	}
+
+	return nil
+}
+
+func (d *DB) softDeleteWorkLogUnits(ctx context.Context, tx *sqlx.Tx, workLogID int64, employeeID int64) error {
+	query := `
+	UPDATE work_log_units 
+	SET deleted_at = CURRENT_TIMESTAMP, deleted_by = ?
+	WHERE work_log_id = ? AND deleted_at IS NULL`
+	query = tx.Rebind(query)
+	args := []any{employeeID, workLogID}
+
+	if _, err := tx.ExecContext(ctx, query, args...); err != nil {
+		return fmt.Errorf("exec context to db: %w", err)
+	}
+
+	return nil
+}
+
+func (d *DB) softDeleteWorkLog(ctx context.Context, tx *sqlx.Tx, id int64, employeeID int64) error {
+	query := `
+	UPDATE work_logs 
+	SET deleted_at = CURRENT_TIMESTAMP, deleted_by = ?
+	WHERE id = ? AND deleted_at IS NULL`
+	query = tx.Rebind(query)
+	args := []any{employeeID, id}
+
+	result, err := tx.ExecContext(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("exec context to db: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return ErrWorkLogNotFound
+	}
+
+	return nil
 }
