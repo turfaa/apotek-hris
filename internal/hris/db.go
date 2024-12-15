@@ -232,14 +232,20 @@ func (d *DB) CreateWorkLog(ctx context.Context, request CreateWorkLogRequest) (w
 func (d *DB) CreateWorkLogUnitsWithQueryer(ctx context.Context, queryer Queryer, workLogID int64, units []CreateWorkLogUnitRequest) ([]WorkLogUnit, error) {
 	query := `
 	WITH inserted_work_log_units AS (
-		INSERT INTO work_log_units (work_log_id, work_type_id, work_outcome)
-		SELECT ?, work_type_id, work_outcome 
+		INSERT INTO work_log_units (work_log_id, work_type_id, work_outcome, work_multiplier)
+		SELECT 
+			?, -- work_log_id
+			t.work_type_id,
+			t.work_outcome,
+			wt.multiplier -- Set work_multiplier from work type's multiplier
 		FROM unnest(?::bigint[], ?::text[]) AS t(work_type_id, work_outcome)
-		RETURNING id, work_type_id, work_outcome
+		JOIN work_types wt ON t.work_type_id = wt.id
+		RETURNING id, work_type_id, work_outcome, work_multiplier
 	)
 	SELECT 
 		iwl.id AS "id", 
 		iwl.work_outcome AS "work_outcome",
+		iwl.work_multiplier AS "work_multiplier",
 		wt.id AS "work_type.id",
 		wt.name AS "work_type.name",
 		wt.outcome_unit AS "work_type.outcome_unit",
@@ -281,6 +287,7 @@ func (d *DB) GetWorkLogUnitsByWorkLogIDs(ctx context.Context, workLogIDs []int64
 		wlu.id AS "id",
 		wlu.work_outcome AS "work_outcome",
 		wlu.work_log_id,
+		wlu.work_multiplier,
 		wlu.deleted_at,
 		wlu.deleted_by,
 		wt.id AS "work_type.id",

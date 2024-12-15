@@ -45,11 +45,12 @@ type WorkLog struct {
 }
 
 type WorkLogUnit struct {
-	ID          int64      `json:"id" db:"id"`
-	WorkType    WorkType   `json:"workType" db:"work_type"`
-	WorkOutcome string     `json:"workOutcome" db:"work_outcome"`
-	DeletedAt   *time.Time `db:"deleted_at" json:"deletedAt,omitempty"`
-	DeletedBy   *int64     `db:"deleted_by" json:"deletedBy,omitempty"`
+	ID             int64           `json:"id" db:"id"`
+	WorkType       WorkType        `json:"workType" db:"work_type"`
+	WorkOutcome    string          `json:"workOutcome" db:"work_outcome"`
+	WorkMultiplier decimal.Decimal `json:"workMultiplier" db:"work_multiplier"`
+	DeletedAt      *time.Time      `db:"deleted_at" json:"deletedAt,omitempty"`
+	DeletedBy      *int64          `db:"deleted_by" json:"deletedBy,omitempty"`
 }
 
 type DBWorkLog struct {
@@ -62,12 +63,13 @@ type DBWorkLog struct {
 }
 
 type DBWorkLogUnit struct {
-	ID          int64      `db:"id"`
-	WorkLogID   int64      `db:"work_log_id"`
-	WorkTypeID  int64      `db:"work_type_id"`
-	WorkOutcome string     `db:"work_outcome"`
-	DeletedAt   *time.Time `db:"deleted_at"`
-	DeletedBy   *int64     `db:"deleted_by"`
+	ID             int64           `db:"id"`
+	WorkLogID      int64           `db:"work_log_id"`
+	WorkTypeID     int64           `db:"work_type_id"`
+	WorkOutcome    string          `db:"work_outcome"`
+	WorkMultiplier decimal.Decimal `db:"work_multiplier"`
+	DeletedAt      *time.Time      `db:"deleted_at"`
+	DeletedBy      *int64          `db:"deleted_by"`
 }
 
 type CreateWorkLogRequest struct {
