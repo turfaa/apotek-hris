@@ -55,6 +55,12 @@ jobs:
                   push: true
                   tags: ${{ steps.meta.outputs.tags }}
                   labels: ${{ steps.meta.outputs.labels }}
+                  cache-from: |
+                    type=gha,scope=go-deps-${{ hashFiles('go.sum') }}
+                    type=gha,scope=build-${{ github.ref_name }}
+                  cache-to: |
+                    type=gha,mode=max,scope=go-deps-${{ hashFiles('go.sum') }}
+                    type=gha,mode=max,scope=build-${{ github.ref_name }}
             
             - name: Save tag
               env:
