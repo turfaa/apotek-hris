@@ -12,14 +12,13 @@ RUN go mod download
 
 COPY . ./
 
-RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} CGO_ENABLED=0 go build -o /hris
+RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} CGO_ENABLED=0 go build -ldflags "-s -w" -trimpath -o /hris
 
 FROM --platform=${BUILDPLATFORM:-linux/amd64} gcr.io/distroless/static-debian12 AS release
 
 WORKDIR /
 
-COPY --from=build /hris /hris
-COPY --from=build /app/migrations /migrations
+COPY --from=build /hris /app/migrations /
 
 USER nonroot:nonroot
 
