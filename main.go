@@ -22,7 +22,7 @@ func setupTime() {
 	if err != nil {
 		log.Fatalf("LoadLocation: %s", err)
 	}
-	time.Local = loc
 
+	time.Local = loc
 	lctime.SetLocale("id_ID")
 }
