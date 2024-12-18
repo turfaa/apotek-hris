@@ -46,6 +46,17 @@ jobs:
             - name: Set up Docker Buildx
               id: buildx
               uses: docker/setup-buildx-action@v3
+        
+            - name: Go Build Cache for Docker
+              uses: actions/cache@v4
+              with:
+                path: go-build-cache
+                key: ${{ runner.os }}-go-build-cache-${{ hashFiles('**/go.sum') }}
+      
+            - name: Inject go-build-cache
+              uses: reproducible-containers/buildkit-cache-dance@v2
+              with:
+                cache-source: go-build-cache
 
             - name: Build and push Docker image
               uses: docker/build-push-action@v6
@@ -55,12 +66,8 @@ jobs:
                   push: true
                   tags: ${{ steps.meta.outputs.tags }}
                   labels: ${{ steps.meta.outputs.labels }}
-                  cache-from: |
-                    type=gha,scope=go-deps-${{ hashFiles('go.sum') }}
-                    type=gha,scope=build-${{ github.ref_name }}
-                  cache-to: |
-                    type=gha,mode=max,scope=go-deps-${{ hashFiles('go.sum') }}
-                    type=gha,mode=max,scope=build-${{ github.ref_name }}
+                  cache-from: type=gha
+                  cache-to: type=gha,mode=max
             
             - name: Save tag
               env:
