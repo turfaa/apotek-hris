@@ -24,6 +24,8 @@
         }
         .info-section {
             margin-bottom: 12px;
+            border-bottom: 1px solid #000;
+            padding-bottom: 8px;
         }
         .row {
             display: flex;
@@ -43,7 +45,7 @@
         .result-item {
             margin: 8px 0;
             padding-bottom: 4px;
-            border-bottom: 1px dotted #000;
+            border-bottom: 1px dashed #000;
         }
         .result-item:last-child {
             border-bottom: none;
@@ -79,7 +81,7 @@
         }
         @media print {
             @page {
-                margin: 0;
+                margin: 2mm;
                 size: 76mm auto;
             }
         }
@@ -111,8 +113,6 @@
             <span>{{.EmployeeName}}</span>
         </div>
     </div>
-
-    <div class="divider"></div>
 
     <div class="results-section">
         {{range .Units}}
