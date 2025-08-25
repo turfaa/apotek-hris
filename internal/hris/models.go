@@ -53,25 +53,6 @@ type WorkLogUnit struct {
 	DeletedBy      *int64          `db:"deleted_by" json:"deletedBy,omitempty"`
 }
 
-type DBWorkLog struct {
-	ID          int64      `db:"id"`
-	EmployeeID  int64      `db:"employee_id"`
-	PatientName string     `db:"patient_name"`
-	CreatedAt   time.Time  `db:"created_at"`
-	DeletedAt   *time.Time `db:"deleted_at"`
-	DeletedBy   *int64     `db:"deleted_by"`
-}
-
-type DBWorkLogUnit struct {
-	ID             int64           `db:"id"`
-	WorkLogID      int64           `db:"work_log_id"`
-	WorkTypeID     int64           `db:"work_type_id"`
-	WorkOutcome    string          `db:"work_outcome"`
-	WorkMultiplier decimal.Decimal `db:"work_multiplier"`
-	DeletedAt      *time.Time      `db:"deleted_at"`
-	DeletedBy      *int64          `db:"deleted_by"`
-}
-
 type CreateWorkLogRequest struct {
 	EmployeeID  int64                      `json:"employeeID" validate:"required"`
 	PatientName string                     `json:"patientName" validate:"required"`
