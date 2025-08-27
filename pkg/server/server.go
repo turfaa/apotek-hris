@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/turfaa/apotek-hris/internal/attendance"
 	"github.com/turfaa/apotek-hris/internal/hris"
 	"github.com/turfaa/apotek-hris/pkg/httpx"
 
@@ -71,9 +72,11 @@ func (s *Server) setupRoutes(r *chi.Mux) {
 
 	// HRIS routes
 	hrisHandler := hris.NewHandler(s.db)
+	attendanceHandler := attendance.NewHandler(s.db)
 	r.Group(func(r chi.Router) {
 		r.Route("/api/v1", func(r chi.Router) {
 			hrisHandler.RegisterRoutes(r)
+			attendanceHandler.RegisterRoutes(r)
 		})
 	})
 }

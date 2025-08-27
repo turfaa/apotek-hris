@@ -3,6 +3,8 @@ package timex
 import (
 	"fmt"
 	"time"
+
+	"github.com/turfaa/go-date"
 )
 
 func Today() (from time.Time, until time.Time) {
@@ -59,4 +61,25 @@ func BeginningOfLastMonth() time.Time {
 func EndOfLastMonth() time.Time {
 	year, month, _ := time.Now().AddDate(0, -1, 0).Date()
 	return time.Date(year, month+1, 0, 23, 59, 59, 999999999, time.Local)
+}
+
+// MonthDateRangeFromMonthString accepts the month string in "YYYY-MM" format and returns the date range for the month.
+func MonthDateRangeFromMonthString(monthStr string) (from date.Date, to date.Date, err error) {
+	year, month, err := ParseMonth(monthStr)
+	if err != nil {
+		return 0, 0, fmt.Errorf("parse month(%s): %w", monthStr, err)
+	}
+
+	return MonthDateRange(year, month)
+}
+
+func MonthDateRange(year int, month int) (from date.Date, to date.Date, err error) {
+	from, err = date.New(year, month, 1)
+	if err != nil {
+		return 0, 0, fmt.Errorf("new date: %w", err)
+	}
+
+	to = from.AddDate(0, 1, -1)
+
+	return from, to, nil
 }

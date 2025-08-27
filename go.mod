@@ -1,8 +1,6 @@
 module github.com/turfaa/apotek-hris
 
-go 1.24
-
-toolchain go1.24.0
+go 1.25.0
 
 require (
 	github.com/go-chi/chi/v5 v5.2.1
@@ -18,6 +16,7 @@ require (
 	github.com/shopspring/decimal v1.4.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
+	github.com/turfaa/go-date v0.0.2
 )
 
 require (
