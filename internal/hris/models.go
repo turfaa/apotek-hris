@@ -7,16 +7,21 @@ import (
 )
 
 type Employee struct {
-	ID        int64           `db:"id" json:"id"`
-	Name      string          `db:"name" json:"name"`
-	ShiftFee  decimal.Decimal `db:"shift_fee" json:"shiftFee"`
-	CreatedAt time.Time       `db:"created_at" json:"createdAt"`
-	UpdatedAt time.Time       `db:"updated_at" json:"updatedAt"`
+	ID                int64           `db:"id" json:"id"`
+	Name              string          `db:"name" json:"name"`
+	ShiftFee          decimal.Decimal `db:"shift_fee" json:"shiftFee"`
+	ShowInAttendances bool            `db:"show_in_attendances" json:"showInAttendances"`
+
+	CreatedAt time.Time `db:"created_at" json:"createdAt"`
+	UpdatedAt time.Time `db:"updated_at" json:"updatedAt"`
 }
 
 type CreateEmployeeRequest struct {
 	Name     string          `json:"name" validate:"required"`
 	ShiftFee decimal.Decimal `json:"shiftFee" validate:"dgt=0"`
+
+	// ShowInAttendances will be true if not provided.
+	ShowInAttendances *bool `json:"showInAttendances"`
 }
 
 type WorkType struct {

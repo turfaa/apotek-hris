@@ -1,0 +1,2 @@
+ALTER TABLE employees
+ADD COLUMN show_in_attendances BOOLEAN NOT NULL DEFAULT TRUE;
