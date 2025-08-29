@@ -16,9 +16,8 @@ type Attendance struct {
 	Type          Type            `db:"type" json:"type"`
 	OvertimeHours decimal.Decimal `db:"overtime_hours" json:"overtimeHours"`
 
-	CreatedAt              time.Time `db:"created_at" json:"createdAt"`
-	UpdatedAt              time.Time `db:"updated_at" json:"updatedAt"`
-	LastOperatorEmployeeID int64     `db:"last_operator_employee_id" json:"lastOperatorEmployeeID"`
+	CreatedAt time.Time `db:"created_at" json:"createdAt"`
+	UpdatedAt time.Time `db:"updated_at" json:"updatedAt"`
 }
 
 type Type struct {
@@ -36,8 +35,6 @@ type UpsertAttendanceRequest struct {
 	Date          date.Date       `json:"-" validate:"required"`
 	TypeID        int64           `json:"typeID" validate:"required"`
 	OvertimeHours decimal.Decimal `json:"overtimeHours" validate:"dgte=0"`
-
-	OperatorEmployeeID int64 `json:"-" validate:"required,gt=0"`
 }
 
 type CreateAttendanceTypeRequest struct {

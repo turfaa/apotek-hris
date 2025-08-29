@@ -39,7 +39,6 @@ func (s *Service) UpsertAttendance(ctx context.Context, request UpsertAttendance
 		request.Date,
 		request.TypeID,
 		request.OvertimeHours,
-		request.OperatorEmployeeID,
 	)
 	if err != nil {
 		return Attendance{}, fmt.Errorf("upsert attendance in db: %w", err)

@@ -35,8 +35,7 @@ func (d *DB) GetAttendancesBetweenDates(ctx context.Context, from date.Date, to 
 			at.updated_at AS "type.updated_at",
 			a.overtime_hours, 
 			a.created_at, 
-			a.updated_at,
-			a.last_operator_employee_id
+			a.updated_at
 		FROM attendances a
 		JOIN attendance_types at ON a.type_id = at.id
 		WHERE a.date BETWEEN ? AND ?
@@ -70,8 +69,7 @@ func (d *DB) GetEmployeeAttendanceAtDateWithSelector(ctx context.Context, select
 			at.updated_at AS "type.updated_at",
 			a.overtime_hours, 
 			a.created_at, 
-			a.updated_at,
-			a.last_operator_employee_id
+			a.updated_at
 		FROM attendances a
 		JOIN attendance_types at ON a.type_id = at.id
 		WHERE a.employee_id = ? AND a.date = ?
@@ -94,7 +92,6 @@ func (d *DB) UpsertAttendance(
 	date date.Date,
 	typeID int64,
 	overtimeHours decimal.Decimal,
-	operatorEmployeeID int64,
 ) (Attendance, error) {
 	tx, err := d.db.BeginTxx(ctx, nil)
 	if err != nil {
@@ -104,13 +101,13 @@ func (d *DB) UpsertAttendance(
 	defer tx.Rollback()
 
 	query := `
-		INSERT INTO attendances (employee_id, date, type_id, overtime_hours, created_at, updated_at, last_operator_employee_id)
-		VALUES (?, ?, ?, ?, NOW(), NOW(), ?)
-		ON CONFLICT (employee_id, date) DO UPDATE SET type_id = ?, overtime_hours = ?, updated_at = NOW(), last_operator_employee_id = ?
+		INSERT INTO attendances (employee_id, date, type_id, overtime_hours, created_at, updated_at)
+		VALUES (?, ?, ?, ?, NOW(), NOW())
+		ON CONFLICT (employee_id, date) DO UPDATE SET type_id = ?, overtime_hours = ?, updated_at = NOW()
 	`
 
 	query = tx.Rebind(query)
-	args := []any{employeeID, date, typeID, overtimeHours, operatorEmployeeID, typeID, overtimeHours, operatorEmployeeID}
+	args := []any{employeeID, date, typeID, overtimeHours, typeID, overtimeHours}
 
 	if _, err := tx.ExecContext(ctx, query, args...); err != nil {
 		return Attendance{}, fmt.Errorf("tx.ExecContext: %w", err)

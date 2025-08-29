@@ -3,7 +3,6 @@ package attendance
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -14,10 +13,6 @@ import (
 	"github.com/turfaa/apotek-hris/pkg/timex"
 	"github.com/turfaa/apotek-hris/pkg/validatorx"
 	"github.com/turfaa/go-date"
-)
-
-const (
-	employeeIDHeader = "X-Employee-ID"
 )
 
 type Handler struct {
@@ -51,12 +46,6 @@ func (h *Handler) GetAttendancesBetweenDates(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *Handler) UpsertAttendance(w http.ResponseWriter, r *http.Request) {
-	operatorEmployeeID, err := getEmployeeIDFromHeader(r)
-	if err != nil {
-		httpx.Error(w, err, http.StatusBadRequest)
-		return
-	}
-
 	employeeIDStr := chi.URLParam(r, "employeeID")
 	if employeeIDStr == "" {
 		httpx.Error(w, errors.New("employeeID is required"), http.StatusBadRequest)
@@ -87,7 +76,6 @@ func (h *Handler) UpsertAttendance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req.OperatorEmployeeID = operatorEmployeeID
 	req.EmployeeID = employeeID
 	req.Date = dt
 
@@ -124,20 +112,6 @@ func (h *Handler) CreateAttendanceType(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httpx.Ok(w, attendanceType)
-}
-
-func getEmployeeIDFromHeader(r *http.Request) (int64, error) {
-	employeeIDStr := r.Header.Get(employeeIDHeader)
-	if employeeIDStr == "" {
-		return 0, fmt.Errorf("employeeID is required")
-	}
-
-	employeeID, err := strconv.ParseInt(employeeIDStr, 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("invalid employeeID(%s): %w", employeeIDStr, err)
-	}
-
-	return employeeID, nil
 }
 
 func httpServiceError(w http.ResponseWriter, err error) {
