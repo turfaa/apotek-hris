@@ -52,6 +52,38 @@ func (d *DB) GetAttendancesBetweenDates(ctx context.Context, from date.Date, to 
 	return attendances, nil
 }
 
+func (d *DB) GetEmployeeAttendancesBetweenDates(ctx context.Context, employeeID int64, from date.Date, to date.Date) ([]Attendance, error) {
+	query := `
+		SELECT 
+			a.id, 
+			a.employee_id, 
+			a.date, 
+			at.id AS "type.id", 
+			at.name AS "type.name", 
+			at.payable_type AS "type.payable_type", 
+			at.created_at AS "type.created_at",
+			at.updated_at AS "type.updated_at",
+			a.overtime_hours, 
+			a.created_at, 
+			a.updated_at
+		FROM attendances a
+		JOIN attendance_types at ON a.type_id = at.id
+		WHERE 
+			a.employee_id = ? AND
+			a.date BETWEEN ? AND ?
+	`
+
+	query = d.db.Rebind(query)
+	args := []any{employeeID, from, to}
+
+	var attendances []Attendance
+	if err := d.db.SelectContext(ctx, &attendances, query, args...); err != nil {
+		return nil, fmt.Errorf("d.db.SelectContext: %w", err)
+	}
+
+	return attendances, nil
+}
+
 func (d *DB) GetEmployeeAttendanceAtDate(ctx context.Context, employeeID int64, date date.Date) (Attendance, error) {
 	return d.GetEmployeeAttendanceAtDateWithSelector(ctx, d.db, employeeID, date)
 }

@@ -21,6 +21,15 @@ func NewService(db *sqlx.DB) *Service {
 	return &Service{db: &DB{db: db}}
 }
 
+func (s *Service) GetEmployee(ctx context.Context, employeeID int64) (Employee, error) {
+	employee, err := s.db.GetEmployee(ctx, employeeID)
+	if err != nil {
+		return Employee{}, fmt.Errorf("get employee from db: %w", err)
+	}
+
+	return employee, nil
+}
+
 func (s *Service) GetEmployees(ctx context.Context) ([]Employee, error) {
 	employees, err := s.db.GetEmployees(ctx)
 	if err != nil {
@@ -69,6 +78,15 @@ func (s *Service) GetWorkLogsBetween(ctx context.Context, startDate time.Time, e
 	workLogs, err := s.db.GetWorkLogsBetween(ctx, startDate, endDate)
 	if err != nil {
 		return []WorkLog{}, fmt.Errorf("get work logs from db: %w", err)
+	}
+
+	return workLogs, nil
+}
+
+func (s *Service) GetEmployeeWorkLogsBetween(ctx context.Context, employeeID int64, startDate time.Time, endDate time.Time) ([]WorkLog, error) {
+	workLogs, err := s.db.GetEmployeeWorkLogsBetween(ctx, employeeID, startDate, endDate)
+	if err != nil {
+		return []WorkLog{}, fmt.Errorf("get employee work logs from db: %w", err)
 	}
 
 	return workLogs, nil

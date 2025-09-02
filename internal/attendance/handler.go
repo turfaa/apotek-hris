@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-json-experiment/json"
-	"github.com/jmoiron/sqlx"
 	"github.com/turfaa/apotek-hris/pkg/httpx"
 	"github.com/turfaa/apotek-hris/pkg/timex"
 	"github.com/turfaa/apotek-hris/pkg/validatorx"
@@ -19,8 +18,8 @@ type Handler struct {
 	service *Service
 }
 
-func NewHandler(db *sqlx.DB) *Handler {
-	return &Handler{service: NewService(db)}
+func NewHandler(service *Service) *Handler {
+	return &Handler{service: service}
 }
 
 func (h *Handler) GetAttendancesBetweenDates(w http.ResponseWriter, r *http.Request) {

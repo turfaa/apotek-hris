@@ -8,6 +8,7 @@ import (
 
 	"github.com/turfaa/apotek-hris/internal/attendance"
 	"github.com/turfaa/apotek-hris/internal/hris"
+	"github.com/turfaa/apotek-hris/internal/salary"
 	"github.com/turfaa/apotek-hris/pkg/httpx"
 
 	"github.com/go-chi/chi/v5"
@@ -70,13 +71,19 @@ func (s *Server) setupMiddleware(r *chi.Mux) {
 func (s *Server) setupRoutes(r *chi.Mux) {
 	r.Get("/health", s.handleHealth())
 
-	// HRIS routes
-	hrisHandler := hris.NewHandler(s.db)
-	attendanceHandler := attendance.NewHandler(s.db)
+	hrisService := hris.NewService(s.db)
+	attendanceService := attendance.NewService(s.db)
+	salaryService := salary.NewService(hrisService, attendanceService)
+
+	hrisHandler := hris.NewHandler(hrisService)
+	attendanceHandler := attendance.NewHandler(attendanceService)
+	salaryHandler := salary.NewHandler(salaryService)
+
 	r.Group(func(r chi.Router) {
 		r.Route("/api/v1", func(r chi.Router) {
 			hrisHandler.RegisterRoutes(r)
 			attendanceHandler.RegisterRoutes(r)
+			salaryHandler.RegisterRoutes(r)
 		})
 	})
 }

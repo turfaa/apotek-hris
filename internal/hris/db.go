@@ -155,6 +155,54 @@ func (d *DB) GetWorkLogsBetween(ctx context.Context, startDate time.Time, endDat
 	return workLogs, nil
 }
 
+func (d *DB) GetEmployeeWorkLogsBetween(ctx context.Context, employeeID int64, startDate time.Time, endDate time.Time) ([]WorkLog, error) {
+	if startDate.After(endDate) {
+		startDate, endDate = endDate, startDate
+	}
+
+	query := `
+	SELECT 
+		wl.id, wl.patient_name, wl.created_at, wl.deleted_at, wl.deleted_by,
+		e.id AS "employee.id",
+		e.name AS "employee.name",
+		e.shift_fee AS "employee.shift_fee",
+		e.created_at AS "employee.created_at",
+		e.updated_at AS "employee.updated_at"
+	FROM work_logs wl
+	JOIN employees e ON wl.employee_id = e.id
+	WHERE wl.deleted_at IS NULL
+	AND wl.employee_id = ?
+	AND wl.created_at BETWEEN ? AND ?`
+	query = d.db.Rebind(query)
+	args := []any{employeeID, startDate, endDate}
+
+	var workLogs []WorkLog
+	if err := d.db.SelectContext(ctx, &workLogs, query, args...); err != nil {
+		return []WorkLog{}, fmt.Errorf("select context from db: %w", err)
+	}
+
+	if len(workLogs) == 0 {
+		return nil, nil
+	}
+
+	workLogIDs := make([]int64, len(workLogs))
+	for i, workLog := range workLogs {
+		workLogIDs[i] = workLog.ID
+	}
+
+	workLogUnitsByWorkLogID, err := d.GetWorkLogUnitsByWorkLogIDs(ctx, workLogIDs)
+	if err != nil {
+		return []WorkLog{}, fmt.Errorf("get work log units by work log ids: %w", err)
+	}
+
+	for i, workLog := range workLogs {
+		workLog.Units = workLogUnitsByWorkLogID[workLog.ID]
+		workLogs[i] = workLog
+	}
+
+	return workLogs, nil
+}
+
 func (d *DB) GetWorkLog(ctx context.Context, id int64) (WorkLog, error) {
 	query := `
 	SELECT 

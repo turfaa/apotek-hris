@@ -28,6 +28,15 @@ func (s *Service) GetAttendancesBetweenDates(ctx context.Context, from date.Date
 	return attendances, nil
 }
 
+func (s *Service) GetEmployeeAttendancesBetweenDates(ctx context.Context, employeeID int64, from date.Date, to date.Date) ([]Attendance, error) {
+	attendances, err := s.db.GetEmployeeAttendancesBetweenDates(ctx, employeeID, from, to)
+	if err != nil {
+		return []Attendance{}, fmt.Errorf("get employee attendances between dates from db: %w", err)
+	}
+
+	return attendances, nil
+}
+
 func (s *Service) UpsertAttendance(ctx context.Context, request UpsertAttendanceRequest) (Attendance, error) {
 	if err := validatorx.Validate(request); err != nil {
 		return Attendance{}, fmt.Errorf("invalid request: %w", err)
