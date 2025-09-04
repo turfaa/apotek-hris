@@ -7,5 +7,9 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 }
 
 func (h *Handler) registerSalaryRoutes(r chi.Router) {
+	r.Delete("/{month}/{employeeID}/additional-components/{id}", h.DeleteAdditionalComponent)
+	r.Get("/{month}/{employeeID}/additional-components", h.GetEmployeeAdditionalComponents)
+	r.Post("/{month}/{employeeID}/additional-components", h.CreateAdditionalComponent)
+
 	r.Get("/{month}/{employeeID}", h.GetSalary)
 }

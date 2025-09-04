@@ -6,6 +6,7 @@ import (
 	"maps"
 	"slices"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/shopspring/decimal"
 	"github.com/turfaa/apotek-hris/internal/attendance"
 	"github.com/turfaa/apotek-hris/internal/hris"
@@ -19,12 +20,17 @@ var (
 )
 
 type Service struct {
+	db                *DB
 	hrisService       *hris.Service
 	attendanceService *attendance.Service
 }
 
-func NewService(hrisService *hris.Service, attendanceService *attendance.Service) *Service {
-	return &Service{hrisService: hrisService, attendanceService: attendanceService}
+func NewService(db *sqlx.DB, hrisService *hris.Service, attendanceService *attendance.Service) *Service {
+	return &Service{
+		db:                NewDB(db),
+		hrisService:       hrisService,
+		attendanceService: attendanceService,
+	}
 }
 
 func (s *Service) GetSalary(ctx context.Context, employeeID int64, month timex.Month) (Salary, error) {
@@ -44,9 +50,10 @@ func (s *Service) GetSalary(ctx context.Context, employeeID int64, month timex.M
 	}
 
 	var (
-		employee    hris.Employee
-		attendances []attendance.Attendance
-		workLogs    []hris.WorkLog
+		employee             hris.Employee
+		attendances          []attendance.Attendance
+		workLogs             []hris.WorkLog
+		additionalComponents []AdditionalComponent
 	)
 
 	eg, gCtx := errgroup.WithContext(ctx)
@@ -81,6 +88,16 @@ func (s *Service) GetSalary(ctx context.Context, employeeID int64, month timex.M
 		return nil
 	})
 
+	eg.Go(func() error {
+		var err error
+		additionalComponents, err = s.db.GetEmployeeAdditionalComponents(gCtx, employeeID, month)
+		if err != nil {
+			return fmt.Errorf("get employee additional components from db: %w", err)
+		}
+
+		return nil
+	})
+
 	if err := eg.Wait(); err != nil {
 		return Salary{}, fmt.Errorf("wait for get salary: %w", err)
 	}
@@ -91,6 +108,7 @@ func (s *Service) GetSalary(ctx context.Context, employeeID int64, month timex.M
 		employee,
 		attendanceSummary,
 		workLogs,
+		additionalComponents,
 	), nil
 }
 
@@ -98,6 +116,7 @@ func (s *Service) calculateSalary(
 	employee hris.Employee,
 	attendanceSummary attendance.EmployeeSummary,
 	workLogs []hris.WorkLog,
+	additionalComponents []AdditionalComponent,
 ) Salary {
 	components := []Component{
 		{
@@ -128,36 +147,15 @@ func (s *Service) calculateSalary(
 		}
 	}
 
-	components = append(components,
-		Component{
-			Description: "Tes dan Resep",
-			Amount:      totalWorkUnits.Mul(workUnitFee),
-			Multiplier:  decimal.NewFromInt(1),
-		},
-		Component{
-			Description: "Bonus Barang ED",
-			Amount:      decimal.Zero,
-			Multiplier:  decimal.NewFromInt(1),
-		},
-		Component{
-			Description: "Bonus",
-			Amount:      fixedBonus,
-			Multiplier:  decimal.NewFromInt(1),
-		},
-		Component{
-			Description: "Potongan Penalti",
-			Amount:      decimal.Zero,
-			Multiplier:  decimal.NewFromInt(1),
-		},
-		Component{
-			Description: "Utang Belanja / Kasbon",
-			Amount:      decimal.Zero,
-			Multiplier:  decimal.NewFromInt(1),
-		},
-	)
+	components = append(components, Component{
+		Description: "Tes dan Resep",
+		Amount:      totalWorkUnits.Mul(workUnitFee),
+		Multiplier:  decimal.NewFromInt(1),
+	})
 
 	return Salary{
-		Components: components,
+		Components:           components,
+		AdditionalComponents: additionalComponents,
 	}
 }
 
@@ -165,4 +163,16 @@ func (s *Service) calculateSalary(
 // This is an existing formula.
 func (*Service) calculateHourlyOvertimeFee(shiftFee decimal.Decimal) decimal.Decimal {
 	return shiftFee.Add(decimal.NewFromInt(10_000)).Div(decimal.NewFromInt(7)).RoundUp(0)
+}
+
+func (s *Service) GetEmployeeAdditionalComponents(ctx context.Context, employeeID int64, month timex.Month) ([]AdditionalComponent, error) {
+	return s.db.GetEmployeeAdditionalComponents(ctx, employeeID, month)
+}
+
+func (s *Service) CreateAdditionalComponent(ctx context.Context, employeeID int64, month timex.Month, component Component) (AdditionalComponent, error) {
+	return s.db.CreateAdditionalComponent(ctx, employeeID, month, component)
+}
+
+func (s *Service) DeleteAdditionalComponent(ctx context.Context, employeeID int64, month timex.Month, id int64) error {
+	return s.db.DeleteAdditionalComponent(ctx, employeeID, month, id)
 }

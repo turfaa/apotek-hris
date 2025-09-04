@@ -73,7 +73,7 @@ func (s *Server) setupRoutes(r *chi.Mux) {
 
 	hrisService := hris.NewService(s.db)
 	attendanceService := attendance.NewService(s.db)
-	salaryService := salary.NewService(hrisService, attendanceService)
+	salaryService := salary.NewService(s.db, hrisService, attendanceService)
 
 	hrisHandler := hris.NewHandler(hrisService)
 	attendanceHandler := attendance.NewHandler(attendanceService)
