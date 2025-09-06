@@ -12,6 +12,7 @@ import (
 
 type Salary struct {
 	Components []Component `json:"components"`
+	ExtraInfos []ExtraInfo `json:"extraInfos"`
 }
 
 func (s Salary) Total() decimal.Decimal {
@@ -39,10 +40,12 @@ func (s Salary) MarshalJSON() ([]byte, error) {
 		Components       []Component     `json:"components"`
 		Total            decimal.Decimal `json:"total"`
 		TotalWithoutDebt decimal.Decimal `json:"totalWithoutDebt"`
+		ExtraInfos       []ExtraInfo     `json:"extraInfos"`
 	}{
 		Components:       s.Components,
 		Total:            s.Total(),
 		TotalWithoutDebt: s.TotalWithoutDebt(),
+		ExtraInfos:       s.ExtraInfos,
 	})
 }
 
@@ -153,4 +156,18 @@ func (c AdditionalComponent) MarshalJSON() ([]byte, error) {
 		CreatedAt:   c.CreatedAt,
 		Total:       c.Total(),
 	})
+}
+
+type ExtraInfo struct {
+	ID          int64       `json:"id" db:"id"`
+	EmployeeID  int64       `json:"employeeID" db:"employee_id"`
+	Month       timex.Month `json:"month" db:"month"`
+	Title       string      `json:"title" db:"title"`
+	Description string      `json:"description" db:"description"`
+	CreatedAt   time.Time   `json:"createdAt" db:"created_at"`
+}
+
+type CreateExtraInfoRequest struct {
+	Title       string `json:"title" validate:"required"`
+	Description string `json:"description" validate:"required"`
 }

@@ -129,3 +129,55 @@ func (d *DB) DeleteAdditionalComponent(ctx context.Context, employeeID int64, mo
 
 	return nil
 }
+
+func (d *DB) GetEmployeeExtraInfos(ctx context.Context, employeeID int64, month timex.Month) ([]ExtraInfo, error) {
+	query := `
+		SELECT id, employee_id, month, title, description, created_at
+		FROM salary_extra_infos
+		WHERE employee_id = ? AND month = ?
+		ORDER BY id ASC
+	`
+
+	query = d.db.Rebind(query)
+	args := []any{employeeID, month}
+
+	var extraInfos []ExtraInfo
+	if err := d.db.SelectContext(ctx, &extraInfos, query, args...); err != nil {
+		return nil, fmt.Errorf("d.db.SelectContext: %w", err)
+	}
+
+	return extraInfos, nil
+}
+
+func (d *DB) CreateExtraInfo(ctx context.Context, employeeID int64, month timex.Month, title string, description string) (ExtraInfo, error) {
+	query := `
+		INSERT INTO salary_extra_infos (employee_id, month, title, description, created_at)
+		VALUES (?, ?, ?, ?, NOW())
+		RETURNING id, employee_id, month, title, description, created_at
+	`
+
+	query = d.db.Rebind(query)
+	args := []any{employeeID, month, title, description}
+
+	var extraInfo ExtraInfo
+	if err := d.db.GetContext(ctx, &extraInfo, query, args...); err != nil {
+		return ExtraInfo{}, fmt.Errorf("d.db.GetContext: %w", err)
+	}
+
+	return extraInfo, nil
+}
+
+func (d *DB) DeleteExtraInfo(ctx context.Context, employeeID int64, month timex.Month, id int64) error {
+	query := `
+		DELETE FROM salary_extra_infos WHERE id = ? AND employee_id = ? AND month = ?
+	`
+
+	query = d.db.Rebind(query)
+	args := []any{id, employeeID, month}
+
+	if _, err := d.db.ExecContext(ctx, query, args...); err != nil {
+		return fmt.Errorf("d.db.ExecContext: %w", err)
+	}
+
+	return nil
+}

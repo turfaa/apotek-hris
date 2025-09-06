@@ -11,6 +11,7 @@ import (
 	"github.com/turfaa/apotek-hris/internal/attendance"
 	"github.com/turfaa/apotek-hris/internal/hris"
 	"github.com/turfaa/apotek-hris/pkg/timex"
+	"github.com/turfaa/apotek-hris/pkg/validatorx"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -55,6 +56,7 @@ func (s *Service) GetSalary(ctx context.Context, employeeID int64, month timex.M
 		workLogs             []hris.WorkLog
 		staticComponents     []StaticComponent
 		additionalComponents []AdditionalComponent
+		extraInfos           []ExtraInfo
 	)
 
 	eg, gCtx := errgroup.WithContext(ctx)
@@ -109,6 +111,16 @@ func (s *Service) GetSalary(ctx context.Context, employeeID int64, month timex.M
 		return nil
 	})
 
+	eg.Go(func() error {
+		var err error
+		extraInfos, err = s.GetEmployeeExtraInfos(gCtx, employeeID, month)
+		if err != nil {
+			return fmt.Errorf("get employee extra infos from db: %w", err)
+		}
+
+		return nil
+	})
+
 	if err := eg.Wait(); err != nil {
 		return Salary{}, fmt.Errorf("wait for get salary: %w", err)
 	}
@@ -121,6 +133,7 @@ func (s *Service) GetSalary(ctx context.Context, employeeID int64, month timex.M
 		workLogs,
 		staticComponents,
 		additionalComponents,
+		extraInfos,
 	), nil
 }
 
@@ -130,6 +143,7 @@ func (s *Service) calculateSalary(
 	workLogs []hris.WorkLog,
 	staticComponents []StaticComponent,
 	additionalComponents []AdditionalComponent,
+	extraInfos []ExtraInfo,
 ) Salary {
 	components := []Component{
 		{
@@ -176,6 +190,7 @@ func (s *Service) calculateSalary(
 
 	return Salary{
 		Components: components,
+		ExtraInfos: extraInfos,
 	}
 }
 
@@ -207,4 +222,20 @@ func (s *Service) CreateAdditionalComponent(ctx context.Context, employeeID int6
 
 func (s *Service) DeleteAdditionalComponent(ctx context.Context, employeeID int64, month timex.Month, id int64) error {
 	return s.db.DeleteAdditionalComponent(ctx, employeeID, month, id)
+}
+
+func (s *Service) GetEmployeeExtraInfos(ctx context.Context, employeeID int64, month timex.Month) ([]ExtraInfo, error) {
+	return s.db.GetEmployeeExtraInfos(ctx, employeeID, month)
+}
+
+func (s *Service) CreateExtraInfo(ctx context.Context, employeeID int64, month timex.Month, request CreateExtraInfoRequest) (ExtraInfo, error) {
+	if err := validatorx.Validate(request); err != nil {
+		return ExtraInfo{}, fmt.Errorf("invalid request: %w", err)
+	}
+
+	return s.db.CreateExtraInfo(ctx, employeeID, month, request.Title, request.Description)
+}
+
+func (s *Service) DeleteExtraInfo(ctx context.Context, employeeID int64, month timex.Month, id int64) error {
+	return s.db.DeleteExtraInfo(ctx, employeeID, month, id)
 }

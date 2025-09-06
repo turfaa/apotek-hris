@@ -157,6 +157,65 @@ func (h *Handler) DeleteAdditionalComponent(w http.ResponseWriter, r *http.Reque
 	httpx.Ok(w, map[string]string{"message": "successfully deleted the additional component"})
 }
 
+func (h *Handler) GetEmployeeExtraInfos(w http.ResponseWriter, r *http.Request) {
+	employeeID, month, err := h.parseEmployeeIDAndMonth(r)
+	if err != nil {
+		httpx.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	extraInfos, err := h.service.GetEmployeeExtraInfos(r.Context(), employeeID, month)
+	if err != nil {
+		httpServiceError(w, err)
+		return
+	}
+	httpx.Ok(w, extraInfos)
+
+}
+
+func (h *Handler) CreateExtraInfo(w http.ResponseWriter, r *http.Request) {
+	employeeID, month, err := h.parseEmployeeIDAndMonth(r)
+	if err != nil {
+		httpx.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	var req CreateExtraInfoRequest
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
+		httpx.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	extraInfo, err := h.service.CreateExtraInfo(r.Context(), employeeID, month, req)
+	if err != nil {
+		httpServiceError(w, err)
+		return
+	}
+
+	httpx.Ok(w, extraInfo)
+}
+
+func (h *Handler) DeleteExtraInfo(w http.ResponseWriter, r *http.Request) {
+	employeeID, month, err := h.parseEmployeeIDAndMonth(r)
+	if err != nil {
+		httpx.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	idToDelete, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		httpx.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.DeleteExtraInfo(r.Context(), employeeID, month, idToDelete); err != nil {
+		httpServiceError(w, err)
+		return
+	}
+
+	httpx.Ok(w, map[string]string{"message": "successfully deleted the extra info"})
+}
+
 func (h *Handler) parseEmployeeIDAndMonth(r *http.Request) (int64, timex.Month, error) {
 	monthStr := chi.URLParam(r, "month")
 	if monthStr == "" {
