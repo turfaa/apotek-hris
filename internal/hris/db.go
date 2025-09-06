@@ -28,7 +28,8 @@ func New(db *sqlx.DB) *DB {
 func (d *DB) GetEmployees(ctx context.Context) ([]Employee, error) {
 	query := `
 	SELECT id, name, shift_fee, show_in_attendances, created_at, updated_at 
-	FROM employees`
+	FROM employees
+	ORDER BY id ASC`
 	query = d.db.Rebind(query)
 
 	var employees []Employee
