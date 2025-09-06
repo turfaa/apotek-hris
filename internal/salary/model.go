@@ -1,6 +1,7 @@
 package salary
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -170,4 +171,44 @@ type ExtraInfo struct {
 type CreateExtraInfoRequest struct {
 	Title       string `json:"title" validate:"required"`
 	Description string `json:"description" validate:"required"`
+}
+
+type Snapshot struct {
+	ID         int64       `json:"id"`
+	EmployeeID int64       `json:"employeeID"`
+	Month      timex.Month `json:"month"`
+	Salary     Salary      `json:"salary"`
+}
+
+type SnapshotDB struct {
+	ID         int64       `db:"id"`
+	EmployeeID int64       `db:"employee_id"`
+	Month      timex.Month `db:"month"`
+	Salary     []byte      `db:"salary"`
+	CreatedAt  time.Time   `db:"created_at"`
+	DeletedAt  *time.Time  `db:"deleted_at"`
+}
+
+func (s SnapshotDB) ToSnapshot() (Snapshot, error) {
+	var salary Salary
+	if err := json.Unmarshal(s.Salary, &salary); err != nil {
+		return Snapshot{}, fmt.Errorf("unmarshal salary snapshot: %w", err)
+	}
+
+	return Snapshot{
+		ID:         s.ID,
+		EmployeeID: s.EmployeeID,
+		Month:      s.Month,
+		Salary:     salary,
+	}, nil
+}
+
+type GetSnapshotsRequest struct {
+	EmployeeID *int64       `json:"employeeID"`
+	Month      *timex.Month `json:"month"`
+}
+
+type CreateSnapshotRequest struct {
+	EmployeeID int64       `json:"employeeID" validate:"required"`
+	Month      timex.Month `json:"month" validate:"required"`
 }

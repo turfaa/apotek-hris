@@ -43,6 +43,10 @@ func (m *Month) UnmarshalJSON(data []byte) error {
 	s := string(data)
 	s = strings.TrimSpace(s)
 
+	if len(s) > 2 && s[0] == '"' && s[len(s)-1] == '"' {
+		s = s[1 : len(s)-1]
+	}
+
 	parsed, err := NewMonthFromString(s)
 	if err != nil {
 		return fmt.Errorf("parse month: %w", err)

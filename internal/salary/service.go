@@ -239,3 +239,29 @@ func (s *Service) CreateExtraInfo(ctx context.Context, employeeID int64, month t
 func (s *Service) DeleteExtraInfo(ctx context.Context, employeeID int64, month timex.Month, id int64) error {
 	return s.db.DeleteExtraInfo(ctx, employeeID, month, id)
 }
+
+func (s *Service) GetSnapshots(ctx context.Context, request GetSnapshotsRequest) ([]Snapshot, error) {
+	return s.db.GetSnapshots(ctx, request)
+}
+
+func (s *Service) CreateSnapshot(ctx context.Context, request CreateSnapshotRequest) (Snapshot, error) {
+	if err := validatorx.Validate(request); err != nil {
+		return Snapshot{}, fmt.Errorf("invalid request: %w", err)
+	}
+
+	salary, err := s.GetSalary(ctx, request.EmployeeID, request.Month)
+	if err != nil {
+		return Snapshot{}, fmt.Errorf("get salary: %w", err)
+	}
+
+	snapshot, err := s.db.CreateSnapshot(ctx, request.EmployeeID, request.Month, salary)
+	if err != nil {
+		return Snapshot{}, fmt.Errorf("create salary snapshot in db: %w", err)
+	}
+
+	return snapshot, nil
+}
+
+func (s *Service) DeleteSnapshot(ctx context.Context, id int64) error {
+	return s.db.DeleteSnapshot(ctx, id)
+}

@@ -3,6 +3,7 @@ package salary
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/turfaa/apotek-hris/pkg/timex"
@@ -174,6 +175,84 @@ func (d *DB) DeleteExtraInfo(ctx context.Context, employeeID int64, month timex.
 
 	query = d.db.Rebind(query)
 	args := []any{id, employeeID, month}
+
+	if _, err := d.db.ExecContext(ctx, query, args...); err != nil {
+		return fmt.Errorf("d.db.ExecContext: %w", err)
+	}
+
+	return nil
+}
+
+func (d *DB) GetSnapshots(ctx context.Context, request GetSnapshotsRequest) ([]Snapshot, error) {
+	var filters []string
+	var args []any
+
+	if request.EmployeeID != nil {
+		filters = append(filters, "employee_id = ?")
+		args = append(args, *request.EmployeeID)
+	}
+
+	if request.Month != nil {
+		filters = append(filters, "month = ?")
+		args = append(args, *request.Month)
+	}
+
+	filters = append(filters, "deleted_at IS NULL")
+
+	filter := "WHERE " + strings.Join(filters, " AND ")
+
+	query := `
+		SELECT id, employee_id, month, salary, created_at, deleted_at
+		FROM salary_snapshots
+		` + filter + `
+		ORDER BY id DESC
+	`
+
+	query = d.db.Rebind(query)
+
+	var snapshotDBs []SnapshotDB
+	if err := d.db.SelectContext(ctx, &snapshotDBs, query, args...); err != nil {
+		return nil, fmt.Errorf("d.db.SelectContext: %w", err)
+	}
+
+	snapshots := make([]Snapshot, len(snapshotDBs))
+	for i, snapshotDB := range snapshotDBs {
+		snapshot, err := snapshotDB.ToSnapshot()
+		if err != nil {
+			return nil, fmt.Errorf("to snapshot: %w", err)
+		}
+
+		snapshots[i] = snapshot
+	}
+
+	return snapshots, nil
+}
+
+func (d *DB) CreateSnapshot(ctx context.Context, employeeID int64, month timex.Month, salary Salary) (Snapshot, error) {
+	query := `
+		INSERT INTO salary_snapshots (employee_id, month, salary, created_at)
+		VALUES (?, ?, ?, NOW())
+		RETURNING id, employee_id, month, salary, created_at
+	`
+
+	query = d.db.Rebind(query)
+	args := []any{employeeID, month, salary}
+
+	var snapshotDB SnapshotDB
+	if err := d.db.GetContext(ctx, &snapshotDB, query, args...); err != nil {
+		return Snapshot{}, fmt.Errorf("d.db.GetContext: %w", err)
+	}
+
+	return snapshotDB.ToSnapshot()
+}
+
+func (d *DB) DeleteSnapshot(ctx context.Context, id int64) error {
+	query := `
+		UPDATE salary_snapshots SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?
+	`
+
+	query = d.db.Rebind(query)
+	args := []any{id}
 
 	if _, err := d.db.ExecContext(ctx, query, args...); err != nil {
 		return fmt.Errorf("d.db.ExecContext: %w", err)
