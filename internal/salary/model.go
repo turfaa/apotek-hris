@@ -1,6 +1,7 @@
 package salary
 
 import (
+	"strings"
 	"time"
 
 	"github.com/go-json-experiment/json"
@@ -22,13 +23,26 @@ func (s Salary) Total() decimal.Decimal {
 	return total.RoundUp(0)
 }
 
+func (s Salary) TotalWithoutDebt() decimal.Decimal {
+	total := decimal.Zero
+	for _, component := range s.Components {
+		if !strings.Contains(strings.ToLower(component.Description), "utang") {
+			total = total.Add(component.Total())
+		}
+	}
+
+	return total.RoundUp(0)
+}
+
 func (s Salary) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		Components []Component     `json:"components"`
-		Total      decimal.Decimal `json:"total"`
+		Components       []Component     `json:"components"`
+		Total            decimal.Decimal `json:"total"`
+		TotalWithoutDebt decimal.Decimal `json:"totalWithoutDebt"`
 	}{
-		Components: s.Components,
-		Total:      s.Total(),
+		Components:       s.Components,
+		Total:            s.Total(),
+		TotalWithoutDebt: s.TotalWithoutDebt(),
 	})
 }
 
