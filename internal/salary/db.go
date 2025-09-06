@@ -16,6 +16,61 @@ func NewDB(db *sqlx.DB) *DB {
 	return &DB{db: db}
 }
 
+func (d *DB) GetEmployeeStaticComponents(ctx context.Context, employeeID int64) ([]StaticComponent, error) {
+	query := `
+		SELECT id, employee_id, description, amount, multiplier, created_at
+		FROM salary_static_components
+		WHERE employee_id = ?
+		ORDER BY id ASC
+	`
+
+	query = d.db.Rebind(query)
+	args := []any{employeeID}
+
+	var staticComponents []StaticComponent
+	if err := d.db.SelectContext(ctx, &staticComponents, query, args...); err != nil {
+		return nil, fmt.Errorf("d.db.SelectContext: %w", err)
+	}
+
+	return staticComponents, nil
+}
+
+func (d *DB) CreateStaticComponent(
+	ctx context.Context,
+	employeeID int64,
+	component Component,
+) (StaticComponent, error) {
+	query := `
+		INSERT INTO salary_static_components (employee_id, description, amount, multiplier, created_at)
+		VALUES (?, ?, ?, ?, NOW())
+		RETURNING id, employee_id, description, amount, multiplier, created_at
+	`
+
+	query = d.db.Rebind(query)
+	args := []any{employeeID, component.Description, component.Amount, component.Multiplier}
+
+	var staticComponent StaticComponent
+	if err := d.db.GetContext(ctx, &staticComponent, query, args...); err != nil {
+		return StaticComponent{}, fmt.Errorf("d.db.GetContext: %w", err)
+	}
+
+	return staticComponent, nil
+}
+
+func (d *DB) DeleteStaticComponent(ctx context.Context, employeeID int64, id int64) error {
+	query := `
+		DELETE FROM salary_static_components WHERE id = ? AND employee_id = ?
+	`
+	query = d.db.Rebind(query)
+	args := []any{id, employeeID}
+
+	if _, err := d.db.ExecContext(ctx, query, args...); err != nil {
+		return fmt.Errorf("exec context to db: %w", err)
+	}
+
+	return nil
+}
+
 func (d *DB) GetEmployeeAdditionalComponents(ctx context.Context, employeeID int64, month timex.Month) ([]AdditionalComponent, error) {
 	query := `
 		SELECT id, employee_id, month, description, amount, multiplier, created_at

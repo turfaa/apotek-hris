@@ -53,6 +53,7 @@ func (s *Service) GetSalary(ctx context.Context, employeeID int64, month timex.M
 		employee             hris.Employee
 		attendances          []attendance.Attendance
 		workLogs             []hris.WorkLog
+		staticComponents     []StaticComponent
 		additionalComponents []AdditionalComponent
 	)
 
@@ -90,7 +91,17 @@ func (s *Service) GetSalary(ctx context.Context, employeeID int64, month timex.M
 
 	eg.Go(func() error {
 		var err error
-		additionalComponents, err = s.db.GetEmployeeAdditionalComponents(gCtx, employeeID, month)
+		staticComponents, err = s.GetEmployeeStaticComponents(gCtx, employeeID)
+		if err != nil {
+			return fmt.Errorf("get employee static components from db: %w", err)
+		}
+
+		return nil
+	})
+
+	eg.Go(func() error {
+		var err error
+		additionalComponents, err = s.GetEmployeeAdditionalComponents(gCtx, employeeID, month)
 		if err != nil {
 			return fmt.Errorf("get employee additional components from db: %w", err)
 		}
@@ -108,6 +119,7 @@ func (s *Service) GetSalary(ctx context.Context, employeeID int64, month timex.M
 		employee,
 		attendanceSummary,
 		workLogs,
+		staticComponents,
 		additionalComponents,
 	), nil
 }
@@ -116,6 +128,7 @@ func (s *Service) calculateSalary(
 	employee hris.Employee,
 	attendanceSummary attendance.EmployeeSummary,
 	workLogs []hris.WorkLog,
+	staticComponents []StaticComponent,
 	additionalComponents []AdditionalComponent,
 ) Salary {
 	components := []Component{
@@ -153,9 +166,16 @@ func (s *Service) calculateSalary(
 		Multiplier:  decimal.NewFromInt(1),
 	})
 
+	for _, staticComponent := range staticComponents {
+		components = append(components, staticComponent.ToComponent())
+	}
+
+	for _, additionalComponent := range additionalComponents {
+		components = append(components, additionalComponent.ToComponent())
+	}
+
 	return Salary{
-		Components:           components,
-		AdditionalComponents: additionalComponents,
+		Components: components,
 	}
 }
 
@@ -163,6 +183,18 @@ func (s *Service) calculateSalary(
 // This is an existing formula.
 func (*Service) calculateHourlyOvertimeFee(shiftFee decimal.Decimal) decimal.Decimal {
 	return shiftFee.Add(decimal.NewFromInt(10_000)).Div(decimal.NewFromInt(7)).RoundUp(0)
+}
+
+func (s *Service) GetEmployeeStaticComponents(ctx context.Context, employeeID int64) ([]StaticComponent, error) {
+	return s.db.GetEmployeeStaticComponents(ctx, employeeID)
+}
+
+func (s *Service) CreateStaticComponent(ctx context.Context, employeeID int64, component Component) (StaticComponent, error) {
+	return s.db.CreateStaticComponent(ctx, employeeID, component)
+}
+
+func (s *Service) DeleteStaticComponent(ctx context.Context, employeeID int64, id int64) error {
+	return s.db.DeleteStaticComponent(ctx, employeeID, id)
 }
 
 func (s *Service) GetEmployeeAdditionalComponents(ctx context.Context, employeeID int64, month timex.Month) ([]AdditionalComponent, error) {

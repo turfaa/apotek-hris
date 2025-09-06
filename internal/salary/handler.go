@@ -38,6 +38,65 @@ func (h *Handler) GetSalary(w http.ResponseWriter, r *http.Request) {
 	httpx.Ok(w, salary)
 }
 
+func (h *Handler) GetEmployeeStaticComponents(w http.ResponseWriter, r *http.Request) {
+	employeeID, err := strconv.ParseInt(chi.URLParam(r, "employeeID"), 10, 64)
+	if err != nil {
+		httpx.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	staticComponents, err := h.service.GetEmployeeStaticComponents(r.Context(), employeeID)
+	if err != nil {
+		httpServiceError(w, err)
+		return
+	}
+
+	httpx.Ok(w, staticComponents)
+}
+
+func (h *Handler) CreateStaticComponent(w http.ResponseWriter, r *http.Request) {
+	employeeID, err := strconv.ParseInt(chi.URLParam(r, "employeeID"), 10, 64)
+	if err != nil {
+		httpx.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	var req Component
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
+		httpx.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	createdComponent, err := h.service.CreateStaticComponent(r.Context(), employeeID, req)
+	if err != nil {
+		httpServiceError(w, err)
+		return
+	}
+
+	httpx.Ok(w, createdComponent)
+}
+
+func (h *Handler) DeleteStaticComponent(w http.ResponseWriter, r *http.Request) {
+	employeeID, err := strconv.ParseInt(chi.URLParam(r, "employeeID"), 10, 64)
+	if err != nil {
+		httpx.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		httpx.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.DeleteStaticComponent(r.Context(), employeeID, id); err != nil {
+		httpServiceError(w, err)
+		return
+	}
+
+	httpx.Ok(w, map[string]string{"message": "successfully deleted the static component"})
+}
+
 func (h *Handler) GetEmployeeAdditionalComponents(w http.ResponseWriter, r *http.Request) {
 	employeeID, month, err := h.parseEmployeeIDAndMonth(r)
 	if err != nil {
