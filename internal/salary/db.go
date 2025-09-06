@@ -123,18 +123,8 @@ func (d *DB) DeleteAdditionalComponent(ctx context.Context, employeeID int64, mo
 	query = d.db.Rebind(query)
 	args := []any{id, employeeID, month}
 
-	result, err := d.db.ExecContext(ctx, query, args...)
-	if err != nil {
+	if _, err := d.db.ExecContext(ctx, query, args...); err != nil {
 		return fmt.Errorf("d.db.ExecContext: %w", err)
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("rows affected: %w", err)
-	}
-
-	if rowsAffected == 0 {
-		return fmt.Errorf("no rows affected")
 	}
 
 	return nil
