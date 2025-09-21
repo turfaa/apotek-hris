@@ -147,3 +147,4 @@ data
 x_test.go
 .DS_Store
 
+.vscode/settings.json

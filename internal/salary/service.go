@@ -147,12 +147,12 @@ func (s *Service) calculateSalary(
 ) Salary {
 	components := []Component{
 		{
-			Description: "Banyak Shift Jaga",
+			Description: "Banyak shift jaga",
 			Amount:      employee.ShiftFee,
 			Multiplier:  decimal.NewFromInt(int64(attendanceSummary.WorkingDays)),
 		},
 		{
-			Description: "Banyak Jam Lembur",
+			Description: "Banyak jam lembur",
 			Amount:      s.calculateHourlyOvertimeFee(employee.ShiftFee),
 			Multiplier:  attendanceSummary.OvertimeHours,
 		},
@@ -175,7 +175,7 @@ func (s *Service) calculateSalary(
 	}
 
 	components = append(components, Component{
-		Description: "Tes dan Resep",
+		Description: "Tes dan resep",
 		Amount:      totalWorkUnits.Mul(workUnitFee),
 		Multiplier:  decimal.NewFromInt(1),
 	})
