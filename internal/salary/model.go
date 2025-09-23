@@ -178,6 +178,7 @@ type Snapshot struct {
 	EmployeeID int64       `json:"employeeID"`
 	Month      timex.Month `json:"month"`
 	Salary     Salary      `json:"salary"`
+	CreatedAt  time.Time   `json:"createdAt"`
 }
 
 type SnapshotDB struct {
@@ -200,6 +201,7 @@ func (s SnapshotDB) ToSnapshot() (Snapshot, error) {
 		EmployeeID: s.EmployeeID,
 		Month:      s.Month,
 		Salary:     salary,
+		CreatedAt:  s.CreatedAt,
 	}, nil
 }
 
