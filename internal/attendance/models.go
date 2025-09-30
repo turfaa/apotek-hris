@@ -58,7 +58,7 @@ func CreateListAtDate(from date.Date, to date.Date, attendances []Attendance) []
 	}
 
 	var res []ListAtDate
-	for day := from; day.Before(to); day = day.AddDate(0, 0, dayDelta) {
+	for day := from; !day.After(to); day = day.AddDate(0, 0, dayDelta) {
 		res = append(res, ListAtDate{
 			Date:        day,
 			Attendances: attendancesByDate[day],
