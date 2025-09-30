@@ -2,8 +2,10 @@ package hris
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -25,7 +27,7 @@ var serveCmd = &cobra.Command{
 			log.Fatalf("Failed to load config: %v", err)
 		}
 
-		db, err := database.NewConnection(cfg.Database)
+		db, err := database.NewPostgresConnection(cmd.Context(), cfg.Database)
 		if err != nil {
 			log.Fatalf("Failed to connect to database: %v", err)
 		}
@@ -38,7 +40,7 @@ var serveCmd = &cobra.Command{
 		signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 		go func() {
-			if err := srv.Start(); err != nil {
+			if err := srv.Start(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				log.Fatalf("Failed to start server: %v", err)
 			}
 		}()

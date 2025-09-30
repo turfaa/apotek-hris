@@ -18,7 +18,8 @@ type DB struct {
 	db *sqlx.DB
 }
 
-func NewDB(db *sqlx.DB) *DB {
+func zewDB(db *sqlx.DB) *DB {
+	
 	return &DB{db: db}
 }
 
