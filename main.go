@@ -13,7 +13,7 @@ func main() {
 	setupTime()
 
 	if err := hris.Execute(); err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to execute command: %s", err)
 	}
 }
 

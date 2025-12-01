@@ -244,6 +244,10 @@ func (s *Service) GetSnapshots(ctx context.Context, request GetSnapshotsRequest)
 	return s.db.GetSnapshots(ctx, request)
 }
 
+func (s *Service) GetSnapshot(ctx context.Context, id int64) (Snapshot, error) {
+	return s.db.GetSnapshot(ctx, id)
+}
+
 func (s *Service) CreateSnapshot(ctx context.Context, request CreateSnapshotRequest) (Snapshot, error) {
 	if err := validatorx.Validate(request); err != nil {
 		return Snapshot{}, fmt.Errorf("invalid request: %w", err)

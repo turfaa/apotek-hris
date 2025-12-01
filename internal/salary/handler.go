@@ -249,6 +249,22 @@ func (h *Handler) GetSnapshots(w http.ResponseWriter, r *http.Request) {
 	httpx.Ok(w, snapshots)
 }
 
+func (h *Handler) GetSnapshot(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		httpx.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	snapshot, err := h.service.GetSnapshot(r.Context(), id)
+	if err != nil {
+		httpServiceError(w, err)
+		return
+	}
+
+	httpx.Ok(w, snapshot)
+}
+
 func (h *Handler) CreateSnapshot(w http.ResponseWriter, r *http.Request) {
 	var req CreateSnapshotRequest
 	if err := json.UnmarshalRead(r.Body, &req); err != nil {

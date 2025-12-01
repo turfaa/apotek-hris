@@ -21,6 +21,7 @@ func (h *Handler) registerSalaryRoutes(r chi.Router) {
 
 	r.Get(`/{month:20\d{2}-\d{2}}/{employeeID:^\d+}`, h.GetSalary)
 
+	r.Get(`/snapshots/{id:^\d+}`, h.GetSnapshot)
 	r.Get(`/snapshots`, h.GetSnapshots)
 	r.Post(`/snapshots`, h.CreateSnapshot)
 	r.Delete(`/snapshots/{id:^\d+}`, h.DeleteSnapshot)

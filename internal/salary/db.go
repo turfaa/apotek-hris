@@ -228,6 +228,29 @@ func (d *DB) GetSnapshots(ctx context.Context, request GetSnapshotsRequest) ([]S
 	return snapshots, nil
 }
 
+func (d *DB) GetSnapshot(ctx context.Context, id int64) (Snapshot, error) {
+	query := `
+		SELECT id, employee_id, month, salary, created_at
+		FROM salary_snapshots
+		WHERE id = ? AND deleted_at IS NULL
+	`
+
+	query = d.db.Rebind(query)
+	args := []any{id}
+
+	var snapshotDB SnapshotDB
+	if err := d.db.GetContext(ctx, &snapshotDB, query, args...); err != nil {
+		return Snapshot{}, fmt.Errorf("d.db.GetContext: %w", err)
+	}
+
+	snapshot, err := snapshotDB.ToSnapshot()
+	if err != nil {
+		return Snapshot{}, fmt.Errorf("snapshotDB.ToSnapshot: %w", err)
+	}
+
+	return snapshot, nil
+}
+
 func (d *DB) CreateSnapshot(ctx context.Context, employeeID int64, month timex.Month, salary Salary) (Snapshot, error) {
 	query := `
 		INSERT INTO salary_snapshots (employee_id, month, salary, created_at)
