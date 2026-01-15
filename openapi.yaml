@@ -1,0 +1,1410 @@
+openapi: 3.1.0
+info:
+  title: Apotek HRIS API
+  version: 1.0.0
+  description: |
+    Human Resource Information System API for pharmacy operations.
+
+    Features:
+    - Employee management
+    - Work log tracking with multiple work types
+    - Attendance tracking
+    - Comprehensive salary calculation system
+    - Salary snapshots for historical records
+  license:
+    name: GNU General Public License v3.0
+    url: https://www.gnu.org/licenses/gpl-3.0.html
+
+servers:
+  - url: http://localhost:8080
+    description: Development server
+
+tags:
+  - name: Health
+    description: Health check endpoints
+  - name: Employees
+    description: Employee management
+  - name: Work Types
+    description: Work type configuration
+  - name: Work Logs
+    description: Work log tracking
+  - name: Attendance
+    description: Attendance tracking and management
+  - name: Salary
+    description: Salary calculation and components
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Check if the service is running and database is accessible
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/employees:
+    get:
+      tags:
+        - Employees
+      summary: List all employees
+      description: Get a list of all employees in the system
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Employee'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - Employees
+      summary: Create a new employee
+      description: Add a new employee to the system
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEmployeeRequest'
+      responses:
+        '201':
+          description: Employee created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/work-types:
+    get:
+      tags:
+        - Work Types
+      summary: List all work types
+      description: Get a list of all configured work types
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WorkType'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - Work Types
+      summary: Create a new work type
+      description: Add a new work type configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWorkTypeRequest'
+      responses:
+        '201':
+          description: Work type created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkType'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/work-logs:
+    get:
+      tags:
+        - Work Logs
+      summary: List work logs
+      description: Get a list of work logs with optional filtering
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WorkLog'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - Work Logs
+      summary: Create a new work log
+      description: Record a new work log for an employee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWorkLogRequest'
+      responses:
+        '201':
+          description: Work log created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkLog'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/work-logs/{workLogID}/for-patient:
+    get:
+      tags:
+        - Work Logs
+      summary: Print work log for patient
+      description: Generate a patient-facing printout of a work log
+      parameters:
+        - name: workLogID
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Work log printout generated
+        '404':
+          description: Work log not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/work-logs/{workLogID}:
+    delete:
+      tags:
+        - Work Logs
+      summary: Delete work log
+      description: Soft delete a work log (sets deleted_at timestamp)
+      parameters:
+        - name: workLogID
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Work log deleted successfully
+        '404':
+          description: Work log not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/attendances:
+    get:
+      tags:
+        - Attendance
+      summary: Get attendances between dates
+      description: Retrieve attendance records for a date range
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Attendance'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/attendances/types:
+    get:
+      tags:
+        - Attendance
+      summary: List attendance types
+      description: Get all configured attendance types
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AttendanceType'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - Attendance
+      summary: Create attendance type
+      description: Add a new attendance type configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAttendanceTypeRequest'
+      responses:
+        '201':
+          description: Attendance type created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttendanceType'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/attendances/{employeeID}/{date}:
+    put:
+      tags:
+        - Attendance
+      summary: Upsert attendance
+      description: Create or update attendance record for an employee on a specific date
+      parameters:
+        - name: employeeID
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: date
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertAttendanceRequest'
+      responses:
+        '200':
+          description: Attendance upserted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attendance'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/salary/{employeeID}/static-components:
+    get:
+      tags:
+        - Salary
+      summary: Get employee static components
+      description: Retrieve all static salary components for an employee
+      parameters:
+        - name: employeeID
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StaticComponent'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - Salary
+      summary: Create static component
+      description: Add a new static salary component for an employee
+      parameters:
+        - name: employeeID
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStaticComponentRequest'
+      responses:
+        '201':
+          description: Static component created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaticComponent'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/salary/{employeeID}/static-components/{id}:
+    delete:
+      tags:
+        - Salary
+      summary: Delete static component
+      description: Remove a static salary component
+      parameters:
+        - name: employeeID
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Static component deleted successfully
+        '404':
+          description: Static component not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/salary/{month}/{employeeID}/additional-components:
+    get:
+      tags:
+        - Salary
+      summary: Get employee additional components
+      description: Retrieve additional salary components for an employee in a specific month
+      parameters:
+        - name: month
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}$'
+            example: '2024-12'
+        - name: employeeID
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdditionalComponent'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - Salary
+      summary: Create additional component
+      description: Add a new additional salary component for an employee in a specific month
+      parameters:
+        - name: month
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}$'
+            example: '2024-12'
+        - name: employeeID
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAdditionalComponentRequest'
+      responses:
+        '201':
+          description: Additional component created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalComponent'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/salary/{month}/{employeeID}/additional-components/{id}:
+    delete:
+      tags:
+        - Salary
+      summary: Delete additional component
+      description: Remove an additional salary component
+      parameters:
+        - name: month
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}$'
+            example: '2024-12'
+        - name: employeeID
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Additional component deleted successfully
+        '404':
+          description: Additional component not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/salary/{month}/{employeeID}/extra-infos:
+    get:
+      tags:
+        - Salary
+      summary: Get employee extra infos
+      description: Retrieve extra information notes for an employee in a specific month
+      parameters:
+        - name: month
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}$'
+            example: '2024-12'
+        - name: employeeID
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExtraInfo'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - Salary
+      summary: Create extra info
+      description: Add extra information note for an employee in a specific month
+      parameters:
+        - name: month
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}$'
+            example: '2024-12'
+        - name: employeeID
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExtraInfoRequest'
+      responses:
+        '201':
+          description: Extra info created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExtraInfo'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/salary/{month}/{employeeID}/extra-infos/{id}:
+    delete:
+      tags:
+        - Salary
+      summary: Delete extra info
+      description: Remove an extra information note
+      parameters:
+        - name: month
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}$'
+            example: '2024-12'
+        - name: employeeID
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Extra info deleted successfully
+        '404':
+          description: Extra info not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/salary/{month}/{employeeID}:
+    get:
+      tags:
+        - Salary
+      summary: Calculate employee salary
+      description: Calculate the total salary for an employee in a specific month, including static, additional, and dynamic components
+      parameters:
+        - name: month
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}$'
+            example: '2024-12'
+        - name: employeeID
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Salary calculated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Salary'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/salary/snapshots:
+    get:
+      tags:
+        - Salary
+      summary: List salary snapshots
+      description: Retrieve salary snapshots with optional filtering by employee and/or month
+      parameters:
+        - name: employeeID
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: month
+          in: query
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}$'
+            example: '2024-12'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Snapshot'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - Salary
+      summary: Create salary snapshot
+      description: Create a snapshot of an employee's salary for a specific month to preserve historical data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSnapshotRequest'
+      responses:
+        '201':
+          description: Snapshot created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Snapshot'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/salary/snapshots/{id}:
+    get:
+      tags:
+        - Salary
+      summary: Get salary snapshot
+      description: Retrieve a specific salary snapshot by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Snapshot'
+        '404':
+          description: Snapshot not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Salary
+      summary: Delete salary snapshot
+      description: Soft delete a salary snapshot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Snapshot deleted successfully
+        '404':
+          description: Snapshot not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+      required:
+        - error
+
+    Employee:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        shiftFee:
+          type: string
+          description: Decimal value as string
+          example: "100000.00"
+        showInAttendances:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - shiftFee
+        - showInAttendances
+        - createdAt
+        - updatedAt
+
+    CreateEmployeeRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        shiftFee:
+          type: string
+          description: Decimal value as string
+          example: "100000.00"
+        showInAttendances:
+          type: boolean
+          default: true
+      required:
+        - name
+        - shiftFee
+
+    WorkType:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        outcomeUnit:
+          type: string
+        multiplier:
+          type: string
+          description: Decimal value as string
+          example: "1.5"
+        notes:
+          type: string
+      required:
+        - id
+        - name
+        - outcomeUnit
+        - multiplier
+        - notes
+
+    CreateWorkTypeRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        outcomeUnit:
+          type: string
+        multiplier:
+          type: string
+          description: Decimal value as string
+          example: "1.5"
+        notes:
+          type: string
+      required:
+        - name
+        - multiplier
+
+    WorkLog:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        employee:
+          $ref: '#/components/schemas/Employee'
+        patientName:
+          type: string
+        units:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkLogUnit'
+        createdAt:
+          type: string
+          format: date-time
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+        deletedBy:
+          type: integer
+          format: int64
+          nullable: true
+      required:
+        - id
+        - employee
+        - patientName
+        - units
+        - createdAt
+
+    WorkLogUnit:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        workType:
+          $ref: '#/components/schemas/WorkType'
+        workOutcome:
+          type: string
+        workMultiplier:
+          type: string
+          description: Decimal value as string
+          example: "1.5"
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+        deletedBy:
+          type: integer
+          format: int64
+          nullable: true
+      required:
+        - id
+        - workType
+        - workOutcome
+        - workMultiplier
+
+    CreateWorkLogRequest:
+      type: object
+      properties:
+        employeeID:
+          type: integer
+          format: int64
+        patientName:
+          type: string
+        units:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/CreateWorkLogUnitRequest'
+      required:
+        - employeeID
+        - patientName
+        - units
+
+    CreateWorkLogUnitRequest:
+      type: object
+      properties:
+        workTypeID:
+          type: integer
+          format: int64
+        workOutcome:
+          type: string
+      required:
+        - workTypeID
+        - workOutcome
+
+    Attendance:
+      type: object
+      properties:
+        employeeID:
+          type: integer
+          format: int64
+        date:
+          type: string
+          format: date
+        attendanceType:
+          $ref: '#/components/schemas/AttendanceType'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - employeeID
+        - date
+        - attendanceType
+        - createdAt
+        - updatedAt
+
+    AttendanceType:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        code:
+          type: string
+      required:
+        - id
+        - name
+        - code
+
+    CreateAttendanceTypeRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        code:
+          type: string
+      required:
+        - name
+        - code
+
+    UpsertAttendanceRequest:
+      type: object
+      properties:
+        attendanceTypeID:
+          type: integer
+          format: int64
+      required:
+        - attendanceTypeID
+
+    Salary:
+      type: object
+      properties:
+        components:
+          type: array
+          items:
+            $ref: '#/components/schemas/Component'
+        total:
+          type: string
+          description: Total salary (decimal as string)
+          example: "5000000.00"
+        totalWithoutDebt:
+          type: string
+          description: Total salary excluding debt components (decimal as string)
+          example: "5000000.00"
+        extraInfos:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExtraInfo'
+      required:
+        - components
+        - total
+        - totalWithoutDebt
+        - extraInfos
+
+    Component:
+      type: object
+      properties:
+        description:
+          type: string
+        amount:
+          type: string
+          description: Decimal value as string
+          example: "1000000.00"
+        multiplier:
+          type: string
+          description: Decimal value as string
+          example: "1.0"
+        total:
+          type: string
+          description: Computed total (amount * multiplier) as string
+          example: "1000000.00"
+      required:
+        - description
+        - amount
+        - multiplier
+        - total
+
+    StaticComponent:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        employeeID:
+          type: integer
+          format: int64
+        description:
+          type: string
+        amount:
+          type: string
+          description: Decimal value as string
+          example: "1000000.00"
+        multiplier:
+          type: string
+          description: Decimal value as string
+          example: "1.0"
+        total:
+          type: string
+          description: Computed total (amount * multiplier) as string
+          example: "1000000.00"
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - employeeID
+        - description
+        - amount
+        - multiplier
+        - total
+        - createdAt
+
+    CreateStaticComponentRequest:
+      type: object
+      properties:
+        description:
+          type: string
+        amount:
+          type: string
+          description: Decimal value as string
+          example: "1000000.00"
+        multiplier:
+          type: string
+          description: Decimal value as string
+          example: "1.0"
+      required:
+        - description
+        - amount
+        - multiplier
+
+    AdditionalComponent:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        employeeID:
+          type: integer
+          format: int64
+        month:
+          type: string
+          pattern: '^\d{4}-\d{2}$'
+          example: '2024-12'
+        description:
+          type: string
+        amount:
+          type: string
+          description: Decimal value as string
+          example: "500000.00"
+        multiplier:
+          type: string
+          description: Decimal value as string
+          example: "1.0"
+        total:
+          type: string
+          description: Computed total (amount * multiplier) as string
+          example: "500000.00"
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - employeeID
+        - month
+        - description
+        - amount
+        - multiplier
+        - total
+        - createdAt
+
+    CreateAdditionalComponentRequest:
+      type: object
+      properties:
+        description:
+          type: string
+        amount:
+          type: string
+          description: Decimal value as string
+          example: "500000.00"
+        multiplier:
+          type: string
+          description: Decimal value as string
+          example: "1.0"
+      required:
+        - description
+        - amount
+        - multiplier
+
+    ExtraInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        employeeID:
+          type: integer
+          format: int64
+        month:
+          type: string
+          pattern: '^\d{4}-\d{2}$'
+          example: '2024-12'
+        title:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - employeeID
+        - month
+        - title
+        - description
+        - createdAt
+
+    CreateExtraInfoRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+      required:
+        - title
+        - description
+
+    Snapshot:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        employeeID:
+          type: integer
+          format: int64
+        month:
+          type: string
+          pattern: '^\d{4}-\d{2}$'
+          example: '2024-12'
+        salary:
+          $ref: '#/components/schemas/Salary'
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - employeeID
+        - month
+        - salary
+        - createdAt
+
+    CreateSnapshotRequest:
+      type: object
+      properties:
+        employeeID:
+          type: integer
+          format: int64
+        month:
+          type: string
+          pattern: '^\d{4}-\d{2}$'
+          example: '2024-12'
+      required:
+        - employeeID
+        - month

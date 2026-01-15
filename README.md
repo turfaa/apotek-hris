@@ -102,6 +102,21 @@ Health check endpoint:
 curl http://localhost:8080/health
 ```
 
+## API Documentation
+
+The complete API documentation is available as an OpenAPI 3.1.0 specification:
+
+- **Endpoint**: `GET /docs/openapi.yaml`
+- **File**: `openapi.yaml` (project root)
+
+View the spec:
+
+```bash
+curl http://localhost:8080/docs/openapi.yaml
+```
+
+You can use tools like [Swagger Editor](https://editor.swagger.io/) or [Redoc](https://redocly.github.io/redoc/) to visualize the API documentation.
+
 ## API Endpoints
 
 All API endpoints are prefixed with `/api/v1`.
