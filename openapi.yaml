@@ -20,6 +20,8 @@ servers:
     description: Development server
 
 tags:
+  - name: Documentation
+    description: API documentation endpoints
   - name: Health
     description: Health check endpoints
   - name: Employees
@@ -34,6 +36,34 @@ tags:
     description: Salary calculation and components
 
 paths:
+  /docs:
+    get:
+      tags:
+        - Documentation
+      summary: Interactive API documentation
+      description: Get the interactive HTML API documentation (generated with Redocly)
+      responses:
+        '200':
+          description: HTML documentation page
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /docs/openapi.yaml:
+    get:
+      tags:
+        - Documentation
+      summary: OpenAPI specification
+      description: Get the OpenAPI 3.1.0 specification in YAML format
+      responses:
+        '200':
+          description: OpenAPI specification
+          content:
+            application/x-yaml:
+              schema:
+                type: string
+
   /health:
     get:
       tags:

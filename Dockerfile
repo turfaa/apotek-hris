@@ -13,12 +13,24 @@ RUN go mod download
 COPY . ./
 RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} CGO_ENABLED=0 go build -ldflags "-s -w" -trimpath -o /hris
 
+# Generate API documentation using Redocly
+FROM --platform=${BUILDPLATFORM:-linux/amd64} node:24-bookworm AS docs
+
+WORKDIR /docs
+
+COPY openapi.yaml ./
+
+RUN npm install -g @redocly/cli && \
+  redocly build-docs openapi.yaml --output index.html
+
 FROM --platform=${BUILDPLATFORM:-linux/amd64} gcr.io/distroless/static-debian12 AS release
 
 WORKDIR /
 
 COPY --from=build /hris /
 COPY --from=build /app/migrations /migrations
+COPY --from=build /app/openapi.yaml /openapi.yaml
+COPY --from=docs /docs/index.html /docs/index.html
 
 USER nonroot:nonroot
 

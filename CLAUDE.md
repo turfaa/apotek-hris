@@ -33,11 +33,16 @@ go run . migrate create <name>                    # Create new migration files
 
 ### API Documentation
 ```bash
+# Interactive API docs (Redocly)
+open http://localhost:8080/docs                   # View interactive API docs in browser
+
 # OpenAPI spec is served at /docs/openapi.yaml
 curl http://localhost:8080/docs/openapi.yaml      # View OpenAPI spec
 ```
 
 The OpenAPI specification (v3.1.0) is defined in `openapi.yaml` at the project root.
+
+When running in Docker, interactive API documentation is automatically generated using Redocly and served at `/docs`.
 
 ### Development
 ```bash

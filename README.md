@@ -104,10 +104,24 @@ curl http://localhost:8080/health
 
 ## API Documentation
 
+### Interactive Documentation
+
+When running with Docker, interactive API documentation is automatically generated using Redocly:
+
+- **Interactive Docs**: `GET /docs` - Beautiful, interactive API documentation
+
+Open in your browser:
+
+```bash
+open http://localhost:8080/docs
+```
+
+### OpenAPI Specification
+
 The complete API documentation is available as an OpenAPI 3.1.0 specification:
 
-- **Endpoint**: `GET /docs/openapi.yaml`
-- **File**: `openapi.yaml` (project root)
+- **OpenAPI Spec**: `GET /docs/openapi.yaml`
+- **Source File**: `openapi.yaml` (project root)
 
 View the spec:
 
@@ -115,7 +129,7 @@ View the spec:
 curl http://localhost:8080/docs/openapi.yaml
 ```
 
-You can use tools like [Swagger Editor](https://editor.swagger.io/) or [Redoc](https://redocly.github.io/redoc/) to visualize the API documentation.
+You can also use tools like [Swagger Editor](https://editor.swagger.io/) or [Redocly](https://redocly.github.io/redoc/) to visualize the OpenAPI specification.
 
 ## API Endpoints
 

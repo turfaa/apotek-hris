@@ -71,6 +71,7 @@ func (s *Server) setupMiddleware(r *chi.Mux) {
 func (s *Server) setupRoutes(r *chi.Mux) {
 	r.Get("/health", s.handleHealth())
 	r.Get("/docs/openapi.yaml", s.handleOpenAPISpec())
+	r.Get("/docs", s.handleAPIDocs())
 
 	hrisService := hris.NewService(s.db)
 	attendanceService := attendance.NewService(s.db)
@@ -109,5 +110,17 @@ func (s *Server) handleOpenAPISpec() http.HandlerFunc {
 
 		// ServeFile handles ETag and Last-Modified headers automatically
 		http.ServeFile(w, r, "openapi.yaml")
+	}
+}
+
+func (s *Server) handleAPIDocs() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Set cache control headers for HTML docs
+		// Cache for 1 hour, allow public caches, must revalidate after expiry
+		w.Header().Set("Cache-Control", "public, max-age=3600, must-revalidate")
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
+		// ServeFile handles ETag and Last-Modified headers automatically
+		http.ServeFile(w, r, "docs/index.html")
 	}
 }
