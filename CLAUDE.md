@@ -28,7 +28,7 @@ go run . serve -c config/custom.yaml              # Run with custom config
 ```bash
 go run . migrate up                               # Apply all pending migrations
 go run . migrate down                             # Rollback last migration
-go run . migrate-create <name>                    # Create new migration files
+go run . migrate create <name>                    # Create new migration files
 ```
 
 ### Development
@@ -79,7 +79,7 @@ This ensures clean separation of changes and follows the project's workflow conv
 
 ```
 .
-├── cmd/hris/           # CLI commands (serve, migrate, migrate-create)
+├── cmd/hris/           # CLI commands (serve, migrate)
 ├── internal/           # Domain modules (not importable by other projects)
 │   ├── hris/          # Employee, WorkType, WorkLog management
 │   ├── attendance/    # Attendance tracking and types
@@ -184,7 +184,7 @@ Salary snapshots can be created to preserve historical salary data as JSON in th
 ### When Creating Migrations
 
 ```bash
-go run . migrate-create add_new_field_to_employees
+go run . migrate create add_new_field_to_employees
 ```
 
 This creates paired up/down migration files in the `migrations/` directory with timestamp prefixes.

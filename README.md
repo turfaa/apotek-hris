@@ -155,7 +155,7 @@ go test ./...
 ### Creating Database Migrations
 
 ```bash
-go run . migrate-create add_new_feature
+go run . migrate create add_new_feature
 ```
 
 This creates a pair of migration files (up and down) in the `migrations/` directory.
