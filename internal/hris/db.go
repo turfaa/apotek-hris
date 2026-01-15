@@ -40,10 +40,35 @@ func (d *DB) GetEmployees(ctx context.Context) ([]Employee, error) {
 	return employees, nil
 }
 
+func (d *DB) GetEmployeesByIDs(ctx context.Context, ids []int64) ([]Employee, error) {
+	if len(ids) == 0 {
+		return []Employee{}, nil
+	}
+
+	query := `
+	SELECT id, name, shift_fee, show_in_attendances, created_at, updated_at
+	FROM employees
+	WHERE id IN (?)`
+
+	query, args, err := sqlx.In(query, ids)
+	if err != nil {
+		return nil, fmt.Errorf("sqlx.In: %w", err)
+	}
+
+	query = d.db.Rebind(query)
+
+	var employees []Employee
+	if err := d.db.SelectContext(ctx, &employees, query, args...); err != nil {
+		return nil, fmt.Errorf("select context from db: %w", err)
+	}
+
+	return employees, nil
+}
+
 func (d *DB) GetEmployee(ctx context.Context, id int64) (Employee, error) {
 	query := `
-	SELECT id, name, shift_fee, show_in_attendances, created_at, updated_at 
-	FROM employees 
+	SELECT id, name, shift_fee, show_in_attendances, created_at, updated_at
+	FROM employees
 	WHERE id = ?`
 	query = d.db.Rebind(query)
 	args := []any{id}

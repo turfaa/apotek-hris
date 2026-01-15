@@ -220,6 +220,56 @@ func (s *Service) CreateAdditionalComponent(ctx context.Context, employeeID int6
 	return s.db.CreateAdditionalComponent(ctx, employeeID, month, component)
 }
 
+func (s *Service) BulkCreateAdditionalComponents(ctx context.Context, request BulkCreateAdditionalComponentRequest) ([]AdditionalComponent, error) {
+	if err := validatorx.Validate(request); err != nil {
+		return nil, fmt.Errorf("invalid request: %w", err)
+	}
+
+	component := Component{
+		Description: request.Component.Description,
+		Amount:      request.Component.Amount,
+		Multiplier:  request.Component.Multiplier,
+	}
+
+	// Validate the component
+	if err := validatorx.Validate(component); err != nil {
+		return nil, fmt.Errorf("invalid component: %w", err)
+	}
+
+	// Get only the requested employees to validate they exist
+	employees, err := s.hrisService.GetEmployeesByIDs(ctx, request.EmployeeIDs)
+	if err != nil {
+		return nil, fmt.Errorf("get employees by ids: %w", err)
+	}
+
+	// Verify all requested employee IDs were found
+	if len(employees) != len(request.EmployeeIDs) {
+		// Create a map of found employee IDs
+		foundIDs := make(map[int64]bool)
+		for _, emp := range employees {
+			foundIDs[emp.ID] = true
+		}
+
+		// Find which IDs are missing
+		var missingIDs []int64
+		for _, empID := range request.EmployeeIDs {
+			if !foundIDs[empID] {
+				missingIDs = append(missingIDs, empID)
+			}
+		}
+
+		return nil, fmt.Errorf("employee IDs not found: %v", missingIDs)
+	}
+
+	// All employees exist, proceed with bulk creation
+	created, err := s.db.BulkCreateAdditionalComponents(ctx, request.EmployeeIDs, request.Month, component)
+	if err != nil {
+		return nil, fmt.Errorf("bulk create additional components: %w", err)
+	}
+
+	return created, nil
+}
+
 func (s *Service) DeleteAdditionalComponent(ctx context.Context, employeeID int64, month timex.Month, id int64) error {
 	return s.db.DeleteAdditionalComponent(ctx, employeeID, month, id)
 }

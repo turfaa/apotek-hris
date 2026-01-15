@@ -214,3 +214,15 @@ type CreateSnapshotRequest struct {
 	EmployeeID int64       `json:"employeeID" validate:"required"`
 	Month      timex.Month `json:"month" validate:"required"`
 }
+
+type BulkCreateAdditionalComponentRequest struct {
+	Month       timex.Month                       `json:"month" validate:"required"`
+	EmployeeIDs []int64                           `json:"employeeIDs" validate:"required,min=1"`
+	Component   BulkCreateAdditionalComponentData `json:"component" validate:"required"`
+}
+
+type BulkCreateAdditionalComponentData struct {
+	Description string          `json:"description" validate:"required"`
+	Amount      decimal.Decimal `json:"amount" validate:"required"`
+	Multiplier  decimal.Decimal `json:"multiplier" validate:"required"`
+}

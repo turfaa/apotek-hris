@@ -114,6 +114,43 @@ func (d *DB) CreateAdditionalComponent(
 	return additionalComponent, nil
 }
 
+func (d *DB) BulkCreateAdditionalComponents(
+	ctx context.Context,
+	employeeIDs []int64,
+	month timex.Month,
+	component Component,
+) ([]AdditionalComponent, error) {
+	if len(employeeIDs) == 0 {
+		return []AdditionalComponent{}, nil
+	}
+
+	// Build VALUES clause for bulk insert
+	query := `
+		INSERT INTO salary_additional_components (employee_id, month, description, amount, multiplier, created_at)
+		VALUES
+	`
+
+	args := []any{}
+	for i, employeeID := range employeeIDs {
+		if i > 0 {
+			query += ","
+		}
+		query += " (?, ?, ?, ?, ?, NOW())"
+		args = append(args, employeeID, month, component.Description, component.Amount, component.Multiplier)
+	}
+
+	query += " RETURNING id, employee_id, month, description, amount, multiplier, created_at"
+
+	query = d.db.Rebind(query)
+
+	var additionalComponents []AdditionalComponent
+	if err := d.db.SelectContext(ctx, &additionalComponents, query, args...); err != nil {
+		return nil, fmt.Errorf("d.db.SelectContext: %w", err)
+	}
+
+	return additionalComponents, nil
+}
+
 // DeleteAdditionalComponent deletes an additional component by id.
 // The employeeID and month are used to verify that the component belongs to the employee and month.
 func (d *DB) DeleteAdditionalComponent(ctx context.Context, employeeID int64, month timex.Month, id int64) error {

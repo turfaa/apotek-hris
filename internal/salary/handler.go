@@ -136,6 +136,22 @@ func (h *Handler) CreateAdditionalComponent(w http.ResponseWriter, r *http.Reque
 	httpx.Ok(w, createdComponent)
 }
 
+func (h *Handler) BulkCreateAdditionalComponents(w http.ResponseWriter, r *http.Request) {
+	var req BulkCreateAdditionalComponentRequest
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
+		httpx.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	created, err := h.service.BulkCreateAdditionalComponents(r.Context(), req)
+	if err != nil {
+		httpServiceError(w, err)
+		return
+	}
+
+	httpx.Ok(w, created)
+}
+
 func (h *Handler) DeleteAdditionalComponent(w http.ResponseWriter, r *http.Request) {
 	employeeID, month, err := h.parseEmployeeIDAndMonth(r)
 	if err != nil {

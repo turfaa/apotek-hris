@@ -39,6 +39,15 @@ func (s *Service) GetEmployees(ctx context.Context) ([]Employee, error) {
 	return employees, nil
 }
 
+func (s *Service) GetEmployeesByIDs(ctx context.Context, ids []int64) ([]Employee, error) {
+	employees, err := s.db.GetEmployeesByIDs(ctx, ids)
+	if err != nil {
+		return []Employee{}, fmt.Errorf("get employees by ids from db: %w", err)
+	}
+
+	return employees, nil
+}
+
 func (s *Service) CreateEmployee(ctx context.Context, request CreateEmployeeRequest) (Employee, error) {
 	if err := validatorx.Validate(request); err != nil {
 		return Employee{}, fmt.Errorf("invalid request: %w", err)

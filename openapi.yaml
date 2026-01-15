@@ -669,6 +669,42 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /api/v1/salary/additional-components/bulk:
+    post:
+      tags:
+        - Salary
+      summary: Bulk create additional components
+      description: |
+        Create additional salary components for multiple employees at once in a specific month.
+        This is an all-or-nothing operation - if any employee ID is invalid, the entire operation fails.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkCreateAdditionalComponentRequest'
+      responses:
+        '200':
+          description: All components created successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdditionalComponent'
+        '400':
+          description: Invalid request or one or more employee IDs not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /api/v1/salary/{month}/{employeeID}/extra-infos:
     get:
       tags:
@@ -1360,6 +1396,42 @@ components:
         - description
         - amount
         - multiplier
+
+    BulkCreateAdditionalComponentRequest:
+      type: object
+      properties:
+        month:
+          type: string
+          pattern: '^\d{4}-\d{2}$'
+          example: '2024-12'
+        employeeIDs:
+          type: array
+          items:
+            type: integer
+            format: int64
+          minItems: 1
+          description: List of employee IDs to create components for (all must exist or the operation fails)
+        component:
+          type: object
+          properties:
+            description:
+              type: string
+            amount:
+              type: string
+              description: Decimal value as string
+              example: "500000.00"
+            multiplier:
+              type: string
+              description: Decimal value as string
+              example: "1.0"
+          required:
+            - description
+            - amount
+            - multiplier
+      required:
+        - month
+        - employeeIDs
+        - component
 
     ExtraInfo:
       type: object
