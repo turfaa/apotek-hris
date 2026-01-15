@@ -50,8 +50,9 @@ docker run -p 8080:8080 apotek-hris               # Run container
 
 ### Workflow Rules
 1. **Always start from an empty change**: Use `jj new` before beginning work
-2. **Never push unless explicitly requested**: Do not run `jj git push` unless the user asks
-3. Use jj commands for all version control operations
+2. **Always create an empty change after finishing**: Use `jj new` after committing to prepare for next work
+3. **Never push unless explicitly requested**: Do not run `jj git push` unless the user asks
+4. Use jj commands for all version control operations
 
 ### Common jj Commands
 ```bash
