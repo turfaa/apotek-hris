@@ -23,17 +23,20 @@ A Human Resource Information System designed for pharmacy operations, built with
 ## Installation
 
 1. Clone the repository:
+
 ```bash
 jj git clone <repository-url>
 cd apotek-hris
 ```
 
 2. Install dependencies:
+
 ```bash
 go mod download
 ```
 
 3. Set up configuration files:
+
 ```bash
 cp config/config.example.yaml config/config.yaml
 cp config/secret.example.yaml config/secret.yaml
@@ -46,6 +49,7 @@ cp config/secret.example.yaml config/secret.yaml
 Configuration is split across two files:
 
 **config/config.yaml** - General configuration:
+
 ```yaml
 database:
   host: localhost
@@ -59,6 +63,7 @@ server:
 ```
 
 **config/secret.yaml** - Sensitive credentials:
+
 ```yaml
 database:
   user: your_db_user
@@ -70,11 +75,13 @@ Configuration can be overridden using environment variables.
 ## Database Setup
 
 1. Create a PostgreSQL database:
+
 ```sql
 CREATE DATABASE apotek_hris;
 ```
 
 2. Run migrations:
+
 ```bash
 go run . migrate up
 ```
@@ -82,6 +89,7 @@ go run . migrate up
 ## Running the Application
 
 Start the server:
+
 ```bash
 go run . serve
 ```
@@ -89,6 +97,7 @@ go run . serve
 The API will be available at `http://localhost:8080`
 
 Health check endpoint:
+
 ```bash
 curl http://localhost:8080/health
 ```
@@ -98,26 +107,31 @@ curl http://localhost:8080/health
 All API endpoints are prefixed with `/api/v1`.
 
 ### Employees
+
 - `GET /api/v1/employees` - List all employees
 - `POST /api/v1/employees` - Create new employee
 
 ### Work Types
+
 - `GET /api/v1/work-types` - List all work types
 - `POST /api/v1/work-types` - Create new work type
 
 ### Work Logs
+
 - `GET /api/v1/work-logs` - List work logs
 - `POST /api/v1/work-logs` - Create new work log
 - `GET /api/v1/work-logs/{id}/for-patient` - Print work log for patient
 - `DELETE /api/v1/work-logs/{id}` - Soft delete work log
 
 ### Attendance
+
 - `GET /api/v1/attendances` - Get attendances between dates
 - `GET /api/v1/attendances/types` - List attendance types
 - `POST /api/v1/attendances/types` - Create attendance type
 - `PUT /api/v1/attendances/{employeeID}/{date}` - Upsert attendance
 
 ### Salary
+
 - `GET /api/v1/salary/{employeeID}/static-components` - Get employee static components
 - `POST /api/v1/salary/{employeeID}/static-components` - Create static component
 - `DELETE /api/v1/salary/{employeeID}/static-components/{id}` - Delete static component
@@ -163,11 +177,13 @@ This creates a pair of migration files (up and down) in the `migrations/` direct
 ### Building
 
 Build the binary:
+
 ```bash
 go build -o apotek-hris
 ```
 
 Run the binary:
+
 ```bash
 ./apotek-hris serve
 ```
@@ -175,11 +191,13 @@ Run the binary:
 ### Docker
 
 Build the Docker image:
+
 ```bash
 docker build -t apotek-hris .
 ```
 
 Run with Docker:
+
 ```bash
 docker run -p 8080:8080 apotek-hris
 ```
@@ -217,9 +235,10 @@ docker run -p 8080:8080 apotek-hris
 ## Timezone and Locale
 
 The application is configured for Indonesian pharmacy operations:
+
 - **Timezone**: Asia/Jakarta
 - **Locale**: Indonesian (id_ID)
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU GPLv3 License - see the [LICENSE](LICENSE) file for details.
