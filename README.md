@@ -166,7 +166,7 @@ All API endpoints are prefixed with `/api/v1`.
 - `DELETE /api/v1/salary/{employeeID}/static-components/{id}` - Delete static component
 - `GET /api/v1/salary/{month}/{employeeID}/additional-components` - Get additional components
 - `POST /api/v1/salary/{month}/{employeeID}/additional-components` - Create additional component
-- `POST /api/v1/salary/additional-components/bulk` - Bulk create additional components for multiple employees
+- `POST /api/v1/salary/{month}/additional-components/bulk` - Bulk create additional components for multiple employees
 - `DELETE /api/v1/salary/{month}/{employeeID}/additional-components/{id}` - Delete additional component
 - `GET /api/v1/salary/{month}/{employeeID}/extra-infos` - Get extra infos
 - `POST /api/v1/salary/{month}/{employeeID}/extra-infos` - Create extra info

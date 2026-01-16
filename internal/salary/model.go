@@ -216,7 +216,7 @@ type CreateSnapshotRequest struct {
 }
 
 type BulkCreateAdditionalComponentRequest struct {
-	Month       timex.Month                       `json:"month" validate:"required"`
+	Month       timex.Month                       `json:"-" validate:"required"`
 	EmployeeIDs []int64                           `json:"employeeIDs" validate:"required,min=1"`
 	Component   BulkCreateAdditionalComponentData `json:"component" validate:"required"`
 }

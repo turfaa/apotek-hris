@@ -11,7 +11,7 @@ func (h *Handler) registerSalaryRoutes(r chi.Router) {
 	r.Get(`/{employeeID:^\d+}/static-components`, h.GetEmployeeStaticComponents)
 	r.Post(`/{employeeID:^\d+}/static-components`, h.CreateStaticComponent)
 
-	r.Post(`/additional-components/bulk`, h.BulkCreateAdditionalComponents)
+	r.Post(`/{month:20\d{2}-\d{2}}/additional-components/bulk`, h.BulkCreateAdditionalComponents)
 	r.Delete(`/{month:20\d{2}-\d{2}}/{employeeID:^\d+}/additional-components/{id:^\d+}`, h.DeleteAdditionalComponent)
 	r.Get(`/{month:20\d{2}-\d{2}}/{employeeID:^\d+}/additional-components`, h.GetEmployeeAdditionalComponents)
 	r.Post(`/{month:20\d{2}-\d{2}}/{employeeID:^\d+}/additional-components`, h.CreateAdditionalComponent)

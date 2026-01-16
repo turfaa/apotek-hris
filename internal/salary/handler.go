@@ -137,11 +137,25 @@ func (h *Handler) CreateAdditionalComponent(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *Handler) BulkCreateAdditionalComponents(w http.ResponseWriter, r *http.Request) {
+	monthStr := chi.URLParam(r, "month")
+	if monthStr == "" {
+		httpx.Error(w, errors.New("month is required"), http.StatusBadRequest)
+		return
+	}
+
+	month, err := timex.NewMonthFromString(monthStr)
+	if err != nil {
+		httpx.Error(w, fmt.Errorf("parse month: %w", err), http.StatusBadRequest)
+		return
+	}
+
 	var req BulkCreateAdditionalComponentRequest
 	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		httpx.Error(w, err, http.StatusBadRequest)
 		return
 	}
+
+	req.Month = month
 
 	created, err := h.service.BulkCreateAdditionalComponents(r.Context(), req)
 	if err != nil {
