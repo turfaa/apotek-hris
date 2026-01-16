@@ -65,7 +65,8 @@ docker run -p 8080:8080 apotek-hris               # Run container
 1. **Always start from an empty change**: Use `jj new` before beginning work
 2. **Always create an empty change after finishing**: Use `jj new` after committing to prepare for next work
 3. **Never push unless explicitly requested**: Do not run `jj git push` unless the user asks
-4. Use jj commands for all version control operations
+4. **Always add co-author in commit messages**: Every commit must end with `Co-Authored-By: Claude <model-name> <noreply@anthropic.com>` where `<model-name>` is the actual Claude model being used (e.g., "Claude Sonnet 4.5", "Claude Opus 4.5")
+5. Use jj commands for all version control operations
 
 ### Common jj Commands
 ```bash
@@ -76,6 +77,20 @@ jj describe -m "message"                          # Add description to current c
 jj log                                            # View change history
 jj squash                                         # Squash current change into parent
 jj abandon                                        # Abandon current empty change
+```
+
+### Commit Message Format
+Always include the co-author line at the end of commit messages with the actual model being used:
+
+```bash
+jj describe -m "$(cat <<'EOF'
+feat: add new feature
+
+Description of the changes made.
+
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
+EOF
+)"
 ```
 
 ### Before Starting Any Work
