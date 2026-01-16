@@ -109,7 +109,7 @@ func (s *Server) handleOpenAPISpec() http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/x-yaml")
 
 		// ServeFile handles ETag and Last-Modified headers automatically
-		http.ServeFile(w, r, "openapi.yaml")
+		http.ServeFile(w, r, "docs/openapi.yaml")
 	}
 }
 

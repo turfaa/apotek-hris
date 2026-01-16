@@ -40,7 +40,7 @@ open http://localhost:8080/docs                   # View interactive API docs in
 curl http://localhost:8080/docs/openapi.yaml      # View OpenAPI spec
 ```
 
-The OpenAPI specification (v3.1.0) is defined in `openapi.yaml` at the project root.
+The OpenAPI specification (v3.1.0) is defined in `docs/openapi.yaml`.
 
 When running in Docker, interactive API documentation is automatically generated using Redocly and served at `/docs`.
 
@@ -193,7 +193,7 @@ Salary snapshots can be created to preserve historical salary data as JSON in th
 3. Implement business logic in `service.go`
 4. Add HTTP handlers in `handler.go`
 5. Register routes in `router.go` using Chi's route groups
-6. **Update `openapi.yaml`** with the new endpoint specifications and schemas
+6. **Update `docs/openapi.yaml`** with the new endpoint specifications and schemas
 
 ### When Creating Migrations
 

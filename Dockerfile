@@ -18,7 +18,7 @@ FROM --platform=${BUILDPLATFORM:-linux/amd64} node:24-bookworm AS docs
 
 WORKDIR /docs
 
-COPY openapi.yaml ./
+COPY docs/openapi.yaml ./
 
 RUN npm install -g @redocly/cli && \
   redocly build-docs openapi.yaml --output index.html
@@ -29,7 +29,7 @@ WORKDIR /
 
 COPY --from=build /hris /
 COPY --from=build /app/migrations /migrations
-COPY --from=build /app/openapi.yaml /openapi.yaml
+COPY --from=build /app/docs/openapi.yaml /docs/openapi.yaml
 COPY --from=docs /docs/index.html /docs/index.html
 
 USER nonroot:nonroot

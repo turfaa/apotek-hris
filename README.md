@@ -121,7 +121,7 @@ open http://localhost:8080/docs
 The complete API documentation is available as an OpenAPI 3.1.0 specification:
 
 - **OpenAPI Spec**: `GET /docs/openapi.yaml`
-- **Source File**: `openapi.yaml` (project root)
+- **Source File**: `docs/openapi.yaml`
 
 View the spec:
 
