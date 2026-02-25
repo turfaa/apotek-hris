@@ -399,12 +399,105 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /api/v1/attendances/quotas/{employeeID}:
+    get:
+      tags:
+        - Attendance
+      summary: Get employee attendance quotas
+      description: Get all attendance quota allocations for a specific employee
+      parameters:
+        - name: employeeID
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmployeeAttendanceQuota'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/attendances/quotas/{employeeID}/{typeID}:
+    put:
+      tags:
+        - Attendance
+      summary: Set employee attendance quota
+      description: Set the remaining quota for a specific employee and attendance type. Use this to allocate or reset an employee's quota for a quota-enabled attendance type.
+      parameters:
+        - name: employeeID
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: typeID
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetEmployeeAttendanceQuotaRequest'
+      responses:
+        '200':
+          description: Quota set successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeAttendanceQuota'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Employee or attendance type not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /api/v1/attendances/{employeeID}/{date}:
     put:
       tags:
         - Attendance
       summary: Upsert attendance
-      description: Create or update attendance record for an employee on a specific date
+      description: |
+        Create or update attendance record for an employee on a specific date.
+
+        If the attendance type has a quota (`hasQuota: true`), the employee's remaining quota will be
+        decremented by 1. If the quota is zero (or not allocated), the request will be rejected with a 400 error.
+
+        If the employee already has an attendance record on that date with a quota-type, changing to a
+        different type will restore the old quota before deducting from the new type.
       parameters:
         - name: employeeID
           in: path
@@ -432,7 +525,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Attendance'
         '400':
-          description: Invalid request
+          description: Invalid request or quota exhausted
           content:
             application/json:
               schema:
@@ -1219,23 +1312,79 @@ components:
           format: int64
         name:
           type: string
-        code:
+        payableType:
           type: string
+          enum: [working, benefit, none]
+        hasQuota:
+          type: boolean
+          description: Whether this attendance type enforces a per-employee quota
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
       required:
         - id
         - name
-        - code
+        - payableType
+        - hasQuota
+        - createdAt
+        - updatedAt
 
     CreateAttendanceTypeRequest:
       type: object
       properties:
         name:
           type: string
-        code:
+        payableType:
           type: string
+          enum: [working, benefit, none]
+        hasQuota:
+          type: boolean
+          description: Whether this attendance type should enforce a per-employee quota. Defaults to false.
+          default: false
       required:
         - name
-        - code
+        - payableType
+
+    EmployeeAttendanceQuota:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        employeeID:
+          type: integer
+          format: int64
+        attendanceType:
+          $ref: '#/components/schemas/AttendanceType'
+        remainingQuota:
+          type: integer
+          description: Number of remaining uses of this attendance type for the employee
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - employeeID
+        - attendanceType
+        - remainingQuota
+        - createdAt
+        - updatedAt
+
+    SetEmployeeAttendanceQuotaRequest:
+      type: object
+      properties:
+        remainingQuota:
+          type: integer
+          minimum: 0
+          description: The number of quota units to allocate to the employee for this attendance type
+      required:
+        - remainingQuota
 
     UpsertAttendanceRequest:
       type: object

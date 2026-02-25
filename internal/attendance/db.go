@@ -2,6 +2,8 @@ package attendance
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
@@ -18,24 +20,24 @@ type DB struct {
 	db *sqlx.DB
 }
 
-func zewDB(db *sqlx.DB) *DB {
-	
+func newDB(db *sqlx.DB) *DB {
 	return &DB{db: db}
 }
 
 func (d *DB) GetAttendancesBetweenDates(ctx context.Context, from date.Date, to date.Date) ([]Attendance, error) {
 	query := `
-		SELECT 
-			a.id, 
-			a.employee_id, 
-			a.date, 
-			at.id AS "type.id", 
-			at.name AS "type.name", 
-			at.payable_type AS "type.payable_type", 
+		SELECT
+			a.id,
+			a.employee_id,
+			a.date,
+			at.id AS "type.id",
+			at.name AS "type.name",
+			at.payable_type AS "type.payable_type",
+			at.has_quota AS "type.has_quota",
 			at.created_at AS "type.created_at",
 			at.updated_at AS "type.updated_at",
-			a.overtime_hours, 
-			a.created_at, 
+			a.overtime_hours,
+			a.created_at,
 			a.updated_at
 		FROM attendances a
 		JOIN attendance_types at ON a.type_id = at.id
@@ -55,21 +57,22 @@ func (d *DB) GetAttendancesBetweenDates(ctx context.Context, from date.Date, to 
 
 func (d *DB) GetEmployeeAttendancesBetweenDates(ctx context.Context, employeeID int64, from date.Date, to date.Date) ([]Attendance, error) {
 	query := `
-		SELECT 
-			a.id, 
-			a.employee_id, 
-			a.date, 
-			at.id AS "type.id", 
-			at.name AS "type.name", 
-			at.payable_type AS "type.payable_type", 
+		SELECT
+			a.id,
+			a.employee_id,
+			a.date,
+			at.id AS "type.id",
+			at.name AS "type.name",
+			at.payable_type AS "type.payable_type",
+			at.has_quota AS "type.has_quota",
 			at.created_at AS "type.created_at",
 			at.updated_at AS "type.updated_at",
-			a.overtime_hours, 
-			a.created_at, 
+			a.overtime_hours,
+			a.created_at,
 			a.updated_at
 		FROM attendances a
 		JOIN attendance_types at ON a.type_id = at.id
-		WHERE 
+		WHERE
 			a.employee_id = ? AND
 			a.date BETWEEN ? AND ?
 	`
@@ -91,17 +94,18 @@ func (d *DB) GetEmployeeAttendanceAtDate(ctx context.Context, employeeID int64, 
 
 func (d *DB) GetEmployeeAttendanceAtDateWithSelector(ctx context.Context, selector SelectorContext, employeeID int64, date date.Date) (Attendance, error) {
 	query := `
-		SELECT 
-			a.id, 
-			a.employee_id, 
-			a.date, 
-			at.id AS "type.id", 
-			at.name AS "type.name", 
-			at.payable_type AS "type.payable_type", 
+		SELECT
+			a.id,
+			a.employee_id,
+			a.date,
+			at.id AS "type.id",
+			at.name AS "type.name",
+			at.payable_type AS "type.payable_type",
+			at.has_quota AS "type.has_quota",
 			at.created_at AS "type.created_at",
 			at.updated_at AS "type.updated_at",
-			a.overtime_hours, 
-			a.created_at, 
+			a.overtime_hours,
+			a.created_at,
 			a.updated_at
 		FROM attendances a
 		JOIN attendance_types at ON a.type_id = at.id
@@ -119,6 +123,63 @@ func (d *DB) GetEmployeeAttendanceAtDateWithSelector(ctx context.Context, select
 	return a, nil
 }
 
+// getAttendanceTypeWithSelector fetches a single attendance type by ID within a transaction or db.
+func (d *DB) getAttendanceTypeWithSelector(ctx context.Context, selector SelectorContext, typeID int64) (Type, error) {
+	query := selector.Rebind(`
+		SELECT id, name, payable_type, has_quota, created_at, updated_at
+		FROM attendance_types
+		WHERE id = ?
+	`)
+
+	var t Type
+	if err := selector.GetContext(ctx, &t, query, typeID); err != nil {
+		return Type{}, fmt.Errorf("selector.GetContext: %w", err)
+	}
+
+	return t, nil
+}
+
+// decrementQuota atomically decrements remaining_quota by 1 only if it is > 0.
+// Returns ErrQuotaExhausted if no row was updated (quota is zero or no record exists).
+func (d *DB) decrementQuota(ctx context.Context, tx *sqlx.Tx, employeeID int64, typeID int64) error {
+	query := tx.Rebind(`
+		UPDATE employee_attendance_quotas
+		SET remaining_quota = remaining_quota - 1, updated_at = NOW()
+		WHERE employee_id = ? AND attendance_type_id = ? AND remaining_quota > 0
+	`)
+
+	result, err := tx.ExecContext(ctx, query, employeeID, typeID)
+	if err != nil {
+		return fmt.Errorf("tx.ExecContext: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("result.RowsAffected: %w", err)
+	}
+
+	if rows == 0 {
+		return ErrQuotaExhausted
+	}
+
+	return nil
+}
+
+// incrementQuota restores one unit of quota. It is a no-op if no record exists.
+func (d *DB) incrementQuota(ctx context.Context, tx *sqlx.Tx, employeeID int64, typeID int64) error {
+	query := tx.Rebind(`
+		UPDATE employee_attendance_quotas
+		SET remaining_quota = remaining_quota + 1, updated_at = NOW()
+		WHERE employee_id = ? AND attendance_type_id = ?
+	`)
+
+	if _, err := tx.ExecContext(ctx, query, employeeID, typeID); err != nil {
+		return fmt.Errorf("tx.ExecContext: %w", err)
+	}
+
+	return nil
+}
+
 func (d *DB) UpsertAttendance(
 	ctx context.Context,
 	employeeID int64,
@@ -133,16 +194,50 @@ func (d *DB) UpsertAttendance(
 
 	defer tx.Rollback()
 
-	query := `
+	// Determine the existing attendance type (if any).
+	existingTypeID := int64(0)
+	existingTypeHasQuota := false
+
+	existing, err := d.GetEmployeeAttendanceAtDateWithSelector(ctx, tx, employeeID, date)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return Attendance{}, fmt.Errorf("get existing attendance: %w", err)
+	}
+	if err == nil {
+		existingTypeID = existing.Type.ID
+		existingTypeHasQuota = existing.Type.HasQuota
+	}
+
+	// Handle quota changes only when the attendance type is changing (or this is a new record).
+	if existingTypeID != typeID {
+		newType, err := d.getAttendanceTypeWithSelector(ctx, tx, typeID)
+		if err != nil {
+			return Attendance{}, fmt.Errorf("get new attendance type: %w", err)
+		}
+
+		// Restore quota for the old type before deducting from the new type.
+		if existingTypeID != 0 && existingTypeHasQuota {
+			if err := d.incrementQuota(ctx, tx, employeeID, existingTypeID); err != nil {
+				return Attendance{}, fmt.Errorf("restore quota for old type: %w", err)
+			}
+		}
+
+		// Deduct quota for the new type.
+		if newType.HasQuota {
+			if err := d.decrementQuota(ctx, tx, employeeID, typeID); err != nil {
+				// Transaction will be rolled back by defer, restoring any quota increment above.
+				return Attendance{}, fmt.Errorf("deduct quota for new type: %w", err)
+			}
+		}
+	}
+
+	// Upsert the attendance record.
+	upsertQuery := tx.Rebind(`
 		INSERT INTO attendances (employee_id, date, type_id, overtime_hours, created_at, updated_at)
 		VALUES (?, ?, ?, ?, NOW(), NOW())
 		ON CONFLICT (employee_id, date) DO UPDATE SET type_id = ?, overtime_hours = ?, updated_at = NOW()
-	`
+	`)
 
-	query = tx.Rebind(query)
-	args := []any{employeeID, date, typeID, overtimeHours, typeID, overtimeHours}
-
-	if _, err := tx.ExecContext(ctx, query, args...); err != nil {
+	if _, err := tx.ExecContext(ctx, upsertQuery, employeeID, date, typeID, overtimeHours, typeID, overtimeHours); err != nil {
 		return Attendance{}, fmt.Errorf("tx.ExecContext: %w", err)
 	}
 
@@ -160,7 +255,7 @@ func (d *DB) UpsertAttendance(
 
 func (d *DB) GetAttendanceTypes(ctx context.Context) ([]Type, error) {
 	query := `
-		SELECT id, name, payable_type, created_at, updated_at
+		SELECT id, name, payable_type, has_quota, created_at, updated_at
 		FROM attendance_types
 	`
 
@@ -172,20 +267,92 @@ func (d *DB) GetAttendanceTypes(ctx context.Context) ([]Type, error) {
 	return types, nil
 }
 
-func (d *DB) CreateAttendanceType(ctx context.Context, name string, payableType PayableType) (Type, error) {
-	query := `
-		INSERT INTO attendance_types (name, payable_type)
-		VALUES (?, ?)
-		RETURNING id, name, payable_type, created_at, updated_at
-	`
-
-	query = d.db.Rebind(query)
-	args := []any{name, payableType}
+func (d *DB) CreateAttendanceType(ctx context.Context, name string, payableType PayableType, hasQuota bool) (Type, error) {
+	query := d.db.Rebind(`
+		INSERT INTO attendance_types (name, payable_type, has_quota)
+		VALUES (?, ?, ?)
+		RETURNING id, name, payable_type, has_quota, created_at, updated_at
+	`)
 
 	var t Type
-	if err := d.db.GetContext(ctx, &t, query, args...); err != nil {
+	if err := d.db.GetContext(ctx, &t, query, name, payableType, hasQuota); err != nil {
 		return Type{}, fmt.Errorf("d.db.GetContext: %w", err)
 	}
 
 	return t, nil
+}
+
+// UpsertEmployeeQuota sets the remaining_quota for an employee+attendance type pair.
+// This is an administrative operation to allocate quota to an employee.
+func (d *DB) UpsertEmployeeQuota(ctx context.Context, employeeID int64, typeID int64, remainingQuota int) (EmployeeAttendanceQuota, error) {
+	query := d.db.Rebind(`
+		INSERT INTO employee_attendance_quotas (employee_id, attendance_type_id, remaining_quota)
+		VALUES (?, ?, ?)
+		ON CONFLICT (employee_id, attendance_type_id)
+		DO UPDATE SET remaining_quota = ?, updated_at = NOW()
+		RETURNING id
+	`)
+
+	var id int64
+	if err := d.db.GetContext(ctx, &id, query, employeeID, typeID, remainingQuota, remainingQuota); err != nil {
+		return EmployeeAttendanceQuota{}, fmt.Errorf("d.db.GetContext: %w", err)
+	}
+
+	return d.getEmployeeQuotaByID(ctx, id)
+}
+
+func (d *DB) getEmployeeQuotaByID(ctx context.Context, id int64) (EmployeeAttendanceQuota, error) {
+	query := d.db.Rebind(`
+		SELECT
+			q.id,
+			q.employee_id,
+			at.id AS "attendance_type.id",
+			at.name AS "attendance_type.name",
+			at.payable_type AS "attendance_type.payable_type",
+			at.has_quota AS "attendance_type.has_quota",
+			at.created_at AS "attendance_type.created_at",
+			at.updated_at AS "attendance_type.updated_at",
+			q.remaining_quota,
+			q.created_at,
+			q.updated_at
+		FROM employee_attendance_quotas q
+		JOIN attendance_types at ON q.attendance_type_id = at.id
+		WHERE q.id = ?
+	`)
+
+	var quota EmployeeAttendanceQuota
+	if err := d.db.GetContext(ctx, &quota, query, id); err != nil {
+		return EmployeeAttendanceQuota{}, fmt.Errorf("d.db.GetContext: %w", err)
+	}
+
+	return quota, nil
+}
+
+// GetEmployeeQuotas returns all quota allocations for a given employee.
+func (d *DB) GetEmployeeQuotas(ctx context.Context, employeeID int64) ([]EmployeeAttendanceQuota, error) {
+	query := d.db.Rebind(`
+		SELECT
+			q.id,
+			q.employee_id,
+			at.id AS "attendance_type.id",
+			at.name AS "attendance_type.name",
+			at.payable_type AS "attendance_type.payable_type",
+			at.has_quota AS "attendance_type.has_quota",
+			at.created_at AS "attendance_type.created_at",
+			at.updated_at AS "attendance_type.updated_at",
+			q.remaining_quota,
+			q.created_at,
+			q.updated_at
+		FROM employee_attendance_quotas q
+		JOIN attendance_types at ON q.attendance_type_id = at.id
+		WHERE q.employee_id = ?
+		ORDER BY at.name
+	`)
+
+	var quotas []EmployeeAttendanceQuota
+	if err := d.db.SelectContext(ctx, &quotas, query, employeeID); err != nil {
+		return nil, fmt.Errorf("d.db.SelectContext: %w", err)
+	}
+
+	return quotas, nil
 }
