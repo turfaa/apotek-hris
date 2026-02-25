@@ -113,10 +113,77 @@ func (h *Handler) CreateAttendanceType(w http.ResponseWriter, r *http.Request) {
 	httpx.Ok(w, attendanceType)
 }
 
+func (h *Handler) GetEmployeeQuotas(w http.ResponseWriter, r *http.Request) {
+	employeeIDStr := chi.URLParam(r, "employeeID")
+	if employeeIDStr == "" {
+		httpx.Error(w, errors.New("employeeID is required"), http.StatusBadRequest)
+		return
+	}
+
+	employeeID, err := strconv.ParseInt(employeeIDStr, 10, 64)
+	if err != nil {
+		httpx.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	quotas, err := h.service.GetEmployeeQuotas(r.Context(), employeeID)
+	if err != nil {
+		httpServiceError(w, err)
+		return
+	}
+
+	httpx.Ok(w, quotas)
+}
+
+func (h *Handler) SetEmployeeQuota(w http.ResponseWriter, r *http.Request) {
+	employeeIDStr := chi.URLParam(r, "employeeID")
+	if employeeIDStr == "" {
+		httpx.Error(w, errors.New("employeeID is required"), http.StatusBadRequest)
+		return
+	}
+
+	employeeID, err := strconv.ParseInt(employeeIDStr, 10, 64)
+	if err != nil {
+		httpx.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	typeIDStr := chi.URLParam(r, "typeID")
+	if typeIDStr == "" {
+		httpx.Error(w, errors.New("typeID is required"), http.StatusBadRequest)
+		return
+	}
+
+	typeID, err := strconv.ParseInt(typeIDStr, 10, 64)
+	if err != nil {
+		httpx.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	var req SetEmployeeAttendanceQuotaRequest
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
+		httpx.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	req.EmployeeID = employeeID
+	req.AttendanceTypeID = typeID
+
+	quota, err := h.service.SetEmployeeQuota(r.Context(), req)
+	if err != nil {
+		httpServiceError(w, err)
+		return
+	}
+
+	httpx.Ok(w, quota)
+}
+
 func httpServiceError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		httpx.Error(w, err, http.StatusNotFound)
+	case errors.Is(err, ErrQuotaExhausted):
+		httpx.Error(w, err, http.StatusBadRequest)
 	case errors.As(err, &validatorx.ValidationErrors{}):
 		httpx.Error(w, err, http.StatusBadRequest)
 	default:

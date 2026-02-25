@@ -74,10 +74,32 @@ func (s *Service) CreateAttendanceType(ctx context.Context, request CreateAttend
 		return Type{}, fmt.Errorf("invalid payable type: %s", request.PayableType)
 	}
 
-	attendanceType, err := s.db.CreateAttendanceType(ctx, request.Name, request.PayableType)
+	attendanceType, err := s.db.CreateAttendanceType(ctx, request.Name, request.PayableType, request.HasQuota)
 	if err != nil {
 		return Type{}, fmt.Errorf("create attendance type in db: %w", err)
 	}
 
 	return attendanceType, nil
+}
+
+func (s *Service) GetEmployeeQuotas(ctx context.Context, employeeID int64) ([]EmployeeAttendanceQuota, error) {
+	quotas, err := s.db.GetEmployeeQuotas(ctx, employeeID)
+	if err != nil {
+		return nil, fmt.Errorf("get employee quotas from db: %w", err)
+	}
+
+	return quotas, nil
+}
+
+func (s *Service) SetEmployeeQuota(ctx context.Context, request SetEmployeeAttendanceQuotaRequest) (EmployeeAttendanceQuota, error) {
+	if err := validatorx.Validate(request); err != nil {
+		return EmployeeAttendanceQuota{}, fmt.Errorf("invalid request: %w", err)
+	}
+
+	quota, err := s.db.UpsertEmployeeQuota(ctx, request.EmployeeID, request.AttendanceTypeID, request.RemainingQuota)
+	if err != nil {
+		return EmployeeAttendanceQuota{}, fmt.Errorf("upsert employee quota in db: %w", err)
+	}
+
+	return quota, nil
 }

@@ -1,12 +1,16 @@
 package attendance
 
 import (
+	"errors"
 	"time"
 
 	"github.com/shopspring/decimal"
 	"github.com/turfaa/apotek-hris/pkg/slicex"
 	"github.com/turfaa/go-date"
 )
+
+// ErrQuotaExhausted is returned when an employee has no remaining quota for an attendance type.
+var ErrQuotaExhausted = errors.New("attendance quota exhausted")
 
 type Attendance struct {
 	ID int64 `db:"id" json:"id"`
@@ -25,6 +29,7 @@ type Type struct {
 
 	Name        string      `db:"name" json:"name"`
 	PayableType PayableType `db:"payable_type" json:"payableType"`
+	HasQuota    bool        `db:"has_quota" json:"hasQuota"`
 
 	CreatedAt time.Time `db:"created_at" json:"createdAt"`
 	UpdatedAt time.Time `db:"updated_at" json:"updatedAt"`
@@ -40,6 +45,22 @@ type UpsertAttendanceRequest struct {
 type CreateAttendanceTypeRequest struct {
 	Name        string      `json:"name" validate:"required"`
 	PayableType PayableType `json:"payableType" validate:"required"`
+	HasQuota    bool        `json:"hasQuota"`
+}
+
+type EmployeeAttendanceQuota struct {
+	ID             int64     `db:"id" json:"id"`
+	EmployeeID     int64     `db:"employee_id" json:"employeeID"`
+	AttendanceType Type      `db:"attendance_type" json:"attendanceType"`
+	RemainingQuota int       `db:"remaining_quota" json:"remainingQuota"`
+	CreatedAt      time.Time `db:"created_at" json:"createdAt"`
+	UpdatedAt      time.Time `db:"updated_at" json:"updatedAt"`
+}
+
+type SetEmployeeAttendanceQuotaRequest struct {
+	EmployeeID       int64 `json:"-" validate:"required,gt=0"`
+	AttendanceTypeID int64 `json:"-" validate:"required,gt=0"`
+	RemainingQuota   int   `json:"remainingQuota" validate:"gte=0"`
 }
 
 type ListAtDate struct {
