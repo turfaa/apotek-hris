@@ -253,6 +253,40 @@ func (d *DB) UpsertAttendance(
 	return attendance, nil
 }
 
+// EnableAttendanceTypeQuota sets has_quota = true for an attendance type.
+// Returns ErrAlreadyHasQuota if the type already has quota enabled.
+func (d *DB) EnableAttendanceTypeQuota(ctx context.Context, typeID int64) (Type, error) {
+	query := d.db.Rebind(`
+		UPDATE attendance_types
+		SET has_quota = TRUE, updated_at = NOW()
+		WHERE id = ? AND has_quota = FALSE
+		RETURNING id, name, payable_type, has_quota, created_at, updated_at
+	`)
+
+	var t Type
+	err := d.db.GetContext(ctx, &t, query, typeID)
+	if errors.Is(err, sql.ErrNoRows) {
+		// Either the type doesn't exist or it already has quota enabled.
+		// Check which case it is.
+		existing, getErr := d.getAttendanceTypeWithSelector(ctx, d.db, typeID)
+		if errors.Is(getErr, sql.ErrNoRows) {
+			return Type{}, fmt.Errorf("d.db.GetContext: %w", sql.ErrNoRows)
+		}
+		if getErr != nil {
+			return Type{}, fmt.Errorf("get attendance type: %w", getErr)
+		}
+		if existing.HasQuota {
+			return Type{}, ErrAlreadyHasQuota
+		}
+		return Type{}, fmt.Errorf("d.db.GetContext: %w", err)
+	}
+	if err != nil {
+		return Type{}, fmt.Errorf("d.db.GetContext: %w", err)
+	}
+
+	return t, nil
+}
+
 func (d *DB) GetAttendanceTypes(ctx context.Context) ([]Type, error) {
 	query := `
 		SELECT id, name, payable_type, has_quota, created_at, updated_at

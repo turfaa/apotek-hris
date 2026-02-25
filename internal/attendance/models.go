@@ -12,6 +12,9 @@ import (
 // ErrQuotaExhausted is returned when an employee has no remaining quota for an attendance type.
 var ErrQuotaExhausted = errors.New("attendance quota exhausted")
 
+// ErrAlreadyHasQuota is returned when trying to enable quota on an attendance type that already has quota enabled.
+var ErrAlreadyHasQuota = errors.New("attendance type already has quota enabled")
+
 type Attendance struct {
 	ID int64 `db:"id" json:"id"`
 

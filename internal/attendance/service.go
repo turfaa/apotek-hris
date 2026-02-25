@@ -91,6 +91,15 @@ func (s *Service) GetEmployeeQuotas(ctx context.Context, employeeID int64) ([]Em
 	return quotas, nil
 }
 
+func (s *Service) EnableAttendanceTypeQuota(ctx context.Context, typeID int64) (Type, error) {
+	t, err := s.db.EnableAttendanceTypeQuota(ctx, typeID)
+	if err != nil {
+		return Type{}, fmt.Errorf("enable attendance type quota in db: %w", err)
+	}
+
+	return t, nil
+}
+
 func (s *Service) SetEmployeeQuota(ctx context.Context, request SetEmployeeAttendanceQuotaRequest) (EmployeeAttendanceQuota, error) {
 	if err := validatorx.Validate(request); err != nil {
 		return EmployeeAttendanceQuota{}, fmt.Errorf("invalid request: %w", err)
