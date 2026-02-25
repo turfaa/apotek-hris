@@ -399,6 +399,51 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /api/v1/attendances/types/{typeID}/enable-quota:
+    post:
+      tags:
+        - Attendance
+      summary: Enable quota for attendance type
+      description: |
+        Convert a non-quota-ed attendance type to be quota-enforced by setting `hasQuota` to `true`.
+
+        Once enabled, this change is irreversible — converting a quota-enforced type back to non-quota is not allowed.
+
+        After enabling quota, employee quotas must be allocated via the set employee quota endpoint before
+        employees can use this attendance type.
+      parameters:
+        - name: typeID
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Quota enabled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttendanceType'
+        '400':
+          description: Attendance type already has quota enabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Attendance type not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /api/v1/attendances/quotas/{employeeID}:
     get:
       tags:

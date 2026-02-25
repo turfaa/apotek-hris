@@ -113,6 +113,28 @@ func (h *Handler) CreateAttendanceType(w http.ResponseWriter, r *http.Request) {
 	httpx.Ok(w, attendanceType)
 }
 
+func (h *Handler) EnableAttendanceTypeQuota(w http.ResponseWriter, r *http.Request) {
+	typeIDStr := chi.URLParam(r, "typeID")
+	if typeIDStr == "" {
+		httpx.Error(w, errors.New("typeID is required"), http.StatusBadRequest)
+		return
+	}
+
+	typeID, err := strconv.ParseInt(typeIDStr, 10, 64)
+	if err != nil {
+		httpx.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	attendanceType, err := h.service.EnableAttendanceTypeQuota(r.Context(), typeID)
+	if err != nil {
+		httpServiceError(w, err)
+		return
+	}
+
+	httpx.Ok(w, attendanceType)
+}
+
 func (h *Handler) GetEmployeeQuotas(w http.ResponseWriter, r *http.Request) {
 	employeeIDStr := chi.URLParam(r, "employeeID")
 	if employeeIDStr == "" {
@@ -183,6 +205,8 @@ func httpServiceError(w http.ResponseWriter, err error) {
 	case errors.Is(err, sql.ErrNoRows):
 		httpx.Error(w, err, http.StatusNotFound)
 	case errors.Is(err, ErrQuotaExhausted):
+		httpx.Error(w, err, http.StatusBadRequest)
+	case errors.Is(err, ErrAlreadyHasQuota):
 		httpx.Error(w, err, http.StatusBadRequest)
 	case errors.As(err, &validatorx.ValidationErrors{}):
 		httpx.Error(w, err, http.StatusBadRequest)
