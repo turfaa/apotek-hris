@@ -449,7 +449,7 @@ paths:
       tags:
         - Attendance
       summary: Get all attendance quotas
-      description: Get all attendance quota allocations across all employees for quota-enabled attendance types.
+      description: Get all attendance quota allocations across all employees, grouped by attendance type.
       responses:
         '200':
           description: Successful response
@@ -458,7 +458,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/EmployeeAttendanceQuota'
+                  $ref: '#/components/schemas/AttendanceTypeQuotaPage'
         '500':
           description: Internal server error
           content:
@@ -1452,6 +1452,20 @@ components:
           description: The number of quota units to allocate to the employee for this attendance type
       required:
         - remainingQuota
+
+    AttendanceTypeQuotaPage:
+      type: object
+      description: Groups employee quota allocations by attendance type
+      properties:
+        attendanceType:
+          $ref: '#/components/schemas/AttendanceType'
+        quotas:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmployeeAttendanceQuota'
+      required:
+        - attendanceType
+        - quotas
 
     UpsertAttendanceRequest:
       type: object
