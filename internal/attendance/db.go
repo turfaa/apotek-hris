@@ -379,7 +379,7 @@ func (d *DB) GetAllQuotas(ctx context.Context) ([]EmployeeAttendanceQuota, error
 			q.updated_at
 		FROM employee_attendance_quotas q
 		JOIN attendance_types at ON q.attendance_type_id = at.id
-		ORDER BY q.employee_id, at.name
+		ORDER BY at.name, q.employee_id
 	`
 
 	var quotas []EmployeeAttendanceQuota

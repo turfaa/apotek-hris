@@ -142,7 +142,8 @@ func (h *Handler) GetAllQuotas(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httpx.Ok(w, quotas)
+	pages := GroupQuotasByAttendanceType(quotas)
+	httpx.Ok(w, pages)
 }
 
 func (h *Handler) GetEmployeeQuotas(w http.ResponseWriter, r *http.Request) {

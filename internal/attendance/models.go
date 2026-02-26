@@ -66,6 +66,37 @@ type SetEmployeeAttendanceQuotaRequest struct {
 	RemainingQuota   int   `json:"remainingQuota" validate:"gte=0"`
 }
 
+// AttendanceTypeQuotaPage groups employee quotas by their attendance type.
+type AttendanceTypeQuotaPage struct {
+	AttendanceType Type                       `json:"attendanceType"`
+	Quotas         []EmployeeAttendanceQuota  `json:"quotas"`
+}
+
+// GroupQuotasByAttendanceType groups a flat list of employee quotas into pages keyed by attendance type.
+// The order of pages preserves the first-seen order from the input slice.
+func GroupQuotasByAttendanceType(quotas []EmployeeAttendanceQuota) []AttendanceTypeQuotaPage {
+	pageMap := make(map[int64]*AttendanceTypeQuotaPage)
+	var pageOrder []int64
+
+	for _, q := range quotas {
+		typeID := q.AttendanceType.ID
+		if _, exists := pageMap[typeID]; !exists {
+			pageMap[typeID] = &AttendanceTypeQuotaPage{
+				AttendanceType: q.AttendanceType,
+			}
+			pageOrder = append(pageOrder, typeID)
+		}
+		pageMap[typeID].Quotas = append(pageMap[typeID].Quotas, q)
+	}
+
+	pages := make([]AttendanceTypeQuotaPage, 0, len(pageOrder))
+	for _, typeID := range pageOrder {
+		pages = append(pages, *pageMap[typeID])
+	}
+
+	return pages
+}
+
 type ListAtDate struct {
 	Date        date.Date    `json:"date"`
 	Attendances []Attendance `json:"attendances"`
