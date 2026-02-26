@@ -362,6 +362,34 @@ func (d *DB) getEmployeeQuotaByID(ctx context.Context, id int64) (EmployeeAttend
 	return quota, nil
 }
 
+// GetAllQuotas returns all quota allocations across all employees for quota-enabled attendance types.
+func (d *DB) GetAllQuotas(ctx context.Context) ([]EmployeeAttendanceQuota, error) {
+	query := `
+		SELECT
+			q.id,
+			q.employee_id,
+			at.id AS "attendance_type.id",
+			at.name AS "attendance_type.name",
+			at.payable_type AS "attendance_type.payable_type",
+			at.has_quota AS "attendance_type.has_quota",
+			at.created_at AS "attendance_type.created_at",
+			at.updated_at AS "attendance_type.updated_at",
+			q.remaining_quota,
+			q.created_at,
+			q.updated_at
+		FROM employee_attendance_quotas q
+		JOIN attendance_types at ON q.attendance_type_id = at.id
+		ORDER BY q.employee_id, at.name
+	`
+
+	var quotas []EmployeeAttendanceQuota
+	if err := d.db.SelectContext(ctx, &quotas, query); err != nil {
+		return nil, fmt.Errorf("d.db.SelectContext: %w", err)
+	}
+
+	return quotas, nil
+}
+
 // GetEmployeeQuotas returns all quota allocations for a given employee.
 func (d *DB) GetEmployeeQuotas(ctx context.Context, employeeID int64) ([]EmployeeAttendanceQuota, error) {
 	query := d.db.Rebind(`

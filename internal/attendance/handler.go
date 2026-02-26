@@ -135,6 +135,16 @@ func (h *Handler) EnableAttendanceTypeQuota(w http.ResponseWriter, r *http.Reque
 	httpx.Ok(w, attendanceType)
 }
 
+func (h *Handler) GetAllQuotas(w http.ResponseWriter, r *http.Request) {
+	quotas, err := h.service.GetAllQuotas(r.Context())
+	if err != nil {
+		httpServiceError(w, err)
+		return
+	}
+
+	httpx.Ok(w, quotas)
+}
+
 func (h *Handler) GetEmployeeQuotas(w http.ResponseWriter, r *http.Request) {
 	employeeIDStr := chi.URLParam(r, "employeeID")
 	if employeeIDStr == "" {

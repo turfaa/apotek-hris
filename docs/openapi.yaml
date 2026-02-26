@@ -444,6 +444,28 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /api/v1/attendances/quotas:
+    get:
+      tags:
+        - Attendance
+      summary: Get all attendance quotas
+      description: Get all attendance quota allocations across all employees for quota-enabled attendance types.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmployeeAttendanceQuota'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /api/v1/attendances/quotas/{employeeID}:
     get:
       tags:
