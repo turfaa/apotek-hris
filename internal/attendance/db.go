@@ -525,6 +525,63 @@ func (d *DB) GetQuotaAuditLogs(ctx context.Context) ([]QuotaAuditLog, error) {
 	return logs, nil
 }
 
+// IncrementQuotaForAllEmployees increments the remaining_quota by the given amount
+// for all employees with show_in_attendances = true for the specified attendance type.
+// It upserts quota records (creating them if they don't exist) and inserts audit logs.
+// Returns the number of employees affected.
+func (d *DB) IncrementQuotaForAllEmployees(ctx context.Context, typeID int64, increment int) (int, error) {
+	tx, err := d.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return 0, fmt.Errorf("d.db.BeginTxx: %w", err)
+	}
+
+	defer tx.Rollback()
+
+	// Get all employees with show_in_attendances = true along with their current quota.
+	type employeeQuota struct {
+		EmployeeID   int64 `db:"employee_id"`
+		CurrentQuota int   `db:"current_quota"`
+	}
+
+	query := tx.Rebind(`
+		SELECT e.id AS employee_id, COALESCE(q.remaining_quota, 0) AS current_quota
+		FROM employees e
+		LEFT JOIN employee_attendance_quotas q ON e.id = q.employee_id AND q.attendance_type_id = ?
+		WHERE e.show_in_attendances = TRUE
+		ORDER BY e.id ASC
+	`)
+
+	var employees []employeeQuota
+	if err := tx.SelectContext(ctx, &employees, query, typeID); err != nil {
+		return 0, fmt.Errorf("tx.SelectContext: %w", err)
+	}
+
+	for _, emp := range employees {
+		newQuota := emp.CurrentQuota + increment
+
+		upsertQuery := tx.Rebind(`
+			INSERT INTO employee_attendance_quotas (employee_id, attendance_type_id, remaining_quota)
+			VALUES (?, ?, ?)
+			ON CONFLICT (employee_id, attendance_type_id)
+			DO UPDATE SET remaining_quota = ?, updated_at = NOW()
+		`)
+
+		if _, err := tx.ExecContext(ctx, upsertQuery, emp.EmployeeID, typeID, newQuota, newQuota); err != nil {
+			return 0, fmt.Errorf("upsert quota for employee %d: %w", emp.EmployeeID, err)
+		}
+
+		if err := d.insertQuotaAuditLog(ctx, tx, emp.EmployeeID, typeID, emp.CurrentQuota, newQuota, QuotaAuditReasonManualSet); err != nil {
+			return 0, fmt.Errorf("insert audit log for employee %d: %w", emp.EmployeeID, err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("tx.Commit: %w", err)
+	}
+
+	return len(employees), nil
+}
+
 // GetEmployeeQuotaAuditLogs returns audit logs for a specific employee, ordered by most recent first.
 func (d *DB) GetEmployeeQuotaAuditLogs(ctx context.Context, employeeID int64) ([]QuotaAuditLog, error) {
 	query := d.db.Rebind(`
