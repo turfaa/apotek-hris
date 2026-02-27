@@ -121,3 +121,21 @@ func (s *Service) SetEmployeeQuota(ctx context.Context, request SetEmployeeAtten
 
 	return quota, nil
 }
+
+func (s *Service) GetQuotaAuditLogs(ctx context.Context) ([]QuotaAuditLog, error) {
+	logs, err := s.db.GetQuotaAuditLogs(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get quota audit logs from db: %w", err)
+	}
+
+	return logs, nil
+}
+
+func (s *Service) GetEmployeeQuotaAuditLogs(ctx context.Context, employeeID int64) ([]QuotaAuditLog, error) {
+	logs, err := s.db.GetEmployeeQuotaAuditLogs(ctx, employeeID)
+	if err != nil {
+		return nil, fmt.Errorf("get employee quota audit logs from db: %w", err)
+	}
+
+	return logs, nil
+}

@@ -139,9 +139,49 @@ func (d *DB) getAttendanceTypeWithSelector(ctx context.Context, selector Selecto
 	return t, nil
 }
 
+// getCurrentQuota returns the current remaining_quota for an employee+type pair within a transaction.
+// Returns 0 and sql.ErrNoRows if no quota record exists.
+func (d *DB) getCurrentQuota(ctx context.Context, tx *sqlx.Tx, employeeID int64, typeID int64) (int, error) {
+	query := tx.Rebind(`
+		SELECT remaining_quota FROM employee_attendance_quotas
+		WHERE employee_id = ? AND attendance_type_id = ?
+	`)
+
+	var quota int
+	if err := tx.GetContext(ctx, &quota, query, employeeID, typeID); err != nil {
+		return 0, err
+	}
+
+	return quota, nil
+}
+
+// insertQuotaAuditLog inserts an audit log entry for a quota change within a transaction.
+func (d *DB) insertQuotaAuditLog(ctx context.Context, tx *sqlx.Tx, employeeID int64, typeID int64, previousQuota int, newQuota int, reason QuotaAuditReason) error {
+	query := tx.Rebind(`
+		INSERT INTO attendance_quota_audit_logs (employee_id, attendance_type_id, previous_quota, new_quota, reason)
+		VALUES (?, ?, ?, ?, ?)
+	`)
+
+	if _, err := tx.ExecContext(ctx, query, employeeID, typeID, previousQuota, newQuota, reason); err != nil {
+		return fmt.Errorf("tx.ExecContext: %w", err)
+	}
+
+	return nil
+}
+
 // decrementQuota atomically decrements remaining_quota by 1 only if it is > 0.
 // Returns ErrQuotaExhausted if no row was updated (quota is zero or no record exists).
+// Also inserts an audit log entry.
 func (d *DB) decrementQuota(ctx context.Context, tx *sqlx.Tx, employeeID int64, typeID int64) error {
+	previousQuota, err := d.getCurrentQuota(ctx, tx, employeeID, typeID)
+	if err != nil {
+		return ErrQuotaExhausted
+	}
+
+	if previousQuota <= 0 {
+		return ErrQuotaExhausted
+	}
+
 	query := tx.Rebind(`
 		UPDATE employee_attendance_quotas
 		SET remaining_quota = remaining_quota - 1, updated_at = NOW()
@@ -162,11 +202,22 @@ func (d *DB) decrementQuota(ctx context.Context, tx *sqlx.Tx, employeeID int64, 
 		return ErrQuotaExhausted
 	}
 
+	if err := d.insertQuotaAuditLog(ctx, tx, employeeID, typeID, previousQuota, previousQuota-1, QuotaAuditReasonAttendanceDeduction); err != nil {
+		return fmt.Errorf("insert audit log: %w", err)
+	}
+
 	return nil
 }
 
 // incrementQuota restores one unit of quota. It is a no-op if no record exists.
+// Also inserts an audit log entry when a quota record exists.
 func (d *DB) incrementQuota(ctx context.Context, tx *sqlx.Tx, employeeID int64, typeID int64) error {
+	previousQuota, err := d.getCurrentQuota(ctx, tx, employeeID, typeID)
+	if err != nil {
+		// No record exists, nothing to increment.
+		return nil
+	}
+
 	query := tx.Rebind(`
 		UPDATE employee_attendance_quotas
 		SET remaining_quota = remaining_quota + 1, updated_at = NOW()
@@ -175,6 +226,10 @@ func (d *DB) incrementQuota(ctx context.Context, tx *sqlx.Tx, employeeID int64, 
 
 	if _, err := tx.ExecContext(ctx, query, employeeID, typeID); err != nil {
 		return fmt.Errorf("tx.ExecContext: %w", err)
+	}
+
+	if err := d.insertQuotaAuditLog(ctx, tx, employeeID, typeID, previousQuota, previousQuota+1, QuotaAuditReasonAttendanceRestoration); err != nil {
+		return fmt.Errorf("insert audit log: %w", err)
 	}
 
 	return nil
@@ -318,8 +373,22 @@ func (d *DB) CreateAttendanceType(ctx context.Context, name string, payableType 
 
 // UpsertEmployeeQuota sets the remaining_quota for an employee+attendance type pair.
 // This is an administrative operation to allocate quota to an employee.
+// Also inserts an audit log entry recording the change.
 func (d *DB) UpsertEmployeeQuota(ctx context.Context, employeeID int64, typeID int64, remainingQuota int) (EmployeeAttendanceQuota, error) {
-	query := d.db.Rebind(`
+	tx, err := d.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return EmployeeAttendanceQuota{}, fmt.Errorf("d.db.BeginTxx: %w", err)
+	}
+
+	defer tx.Rollback()
+
+	// Get the previous quota value (0 if not yet allocated).
+	previousQuota, err := d.getCurrentQuota(ctx, tx, employeeID, typeID)
+	if err != nil {
+		previousQuota = 0
+	}
+
+	query := tx.Rebind(`
 		INSERT INTO employee_attendance_quotas (employee_id, attendance_type_id, remaining_quota)
 		VALUES (?, ?, ?)
 		ON CONFLICT (employee_id, attendance_type_id)
@@ -328,8 +397,16 @@ func (d *DB) UpsertEmployeeQuota(ctx context.Context, employeeID int64, typeID i
 	`)
 
 	var id int64
-	if err := d.db.GetContext(ctx, &id, query, employeeID, typeID, remainingQuota, remainingQuota); err != nil {
-		return EmployeeAttendanceQuota{}, fmt.Errorf("d.db.GetContext: %w", err)
+	if err := tx.GetContext(ctx, &id, query, employeeID, typeID, remainingQuota, remainingQuota); err != nil {
+		return EmployeeAttendanceQuota{}, fmt.Errorf("tx.GetContext: %w", err)
+	}
+
+	if err := d.insertQuotaAuditLog(ctx, tx, employeeID, typeID, previousQuota, remainingQuota, QuotaAuditReasonManualSet); err != nil {
+		return EmployeeAttendanceQuota{}, fmt.Errorf("insert audit log: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return EmployeeAttendanceQuota{}, fmt.Errorf("tx.Commit: %w", err)
 	}
 
 	return d.getEmployeeQuotaByID(ctx, id)
@@ -417,4 +494,63 @@ func (d *DB) GetEmployeeQuotas(ctx context.Context, employeeID int64) ([]Employe
 	}
 
 	return quotas, nil
+}
+
+// GetQuotaAuditLogs returns all audit logs for quota changes, ordered by most recent first.
+func (d *DB) GetQuotaAuditLogs(ctx context.Context) ([]QuotaAuditLog, error) {
+	query := `
+		SELECT
+			l.id,
+			l.employee_id,
+			at.id AS "attendance_type.id",
+			at.name AS "attendance_type.name",
+			at.payable_type AS "attendance_type.payable_type",
+			at.has_quota AS "attendance_type.has_quota",
+			at.created_at AS "attendance_type.created_at",
+			at.updated_at AS "attendance_type.updated_at",
+			l.previous_quota,
+			l.new_quota,
+			l.reason,
+			l.created_at
+		FROM attendance_quota_audit_logs l
+		JOIN attendance_types at ON l.attendance_type_id = at.id
+		ORDER BY l.created_at DESC
+	`
+
+	var logs []QuotaAuditLog
+	if err := d.db.SelectContext(ctx, &logs, query); err != nil {
+		return nil, fmt.Errorf("d.db.SelectContext: %w", err)
+	}
+
+	return logs, nil
+}
+
+// GetEmployeeQuotaAuditLogs returns audit logs for a specific employee, ordered by most recent first.
+func (d *DB) GetEmployeeQuotaAuditLogs(ctx context.Context, employeeID int64) ([]QuotaAuditLog, error) {
+	query := d.db.Rebind(`
+		SELECT
+			l.id,
+			l.employee_id,
+			at.id AS "attendance_type.id",
+			at.name AS "attendance_type.name",
+			at.payable_type AS "attendance_type.payable_type",
+			at.has_quota AS "attendance_type.has_quota",
+			at.created_at AS "attendance_type.created_at",
+			at.updated_at AS "attendance_type.updated_at",
+			l.previous_quota,
+			l.new_quota,
+			l.reason,
+			l.created_at
+		FROM attendance_quota_audit_logs l
+		JOIN attendance_types at ON l.attendance_type_id = at.id
+		WHERE l.employee_id = ?
+		ORDER BY l.created_at DESC
+	`)
+
+	var logs []QuotaAuditLog
+	if err := d.db.SelectContext(ctx, &logs, query, employeeID); err != nil {
+		return nil, fmt.Errorf("d.db.SelectContext: %w", err)
+	}
+
+	return logs, nil
 }
