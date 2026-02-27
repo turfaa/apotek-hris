@@ -496,6 +496,55 @@ func (d *DB) GetEmployeeQuotas(ctx context.Context, employeeID int64) ([]Employe
 	return quotas, nil
 }
 
+// IncrementQuotaForAllEmployees increases the remaining quota by the given increment
+// for all employees for the specified attendance type. Employees without an existing
+// quota record will have one created with the increment as their initial quota.
+// Returns the number of employees affected.
+func (d *DB) IncrementQuotaForAllEmployees(ctx context.Context, typeID int64, increment int) (int64, error) {
+	tx, err := d.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return 0, fmt.Errorf("d.db.BeginTxx: %w", err)
+	}
+
+	defer tx.Rollback()
+
+	query := tx.Rebind(`
+		WITH current_quotas AS (
+			SELECT e.id AS employee_id, COALESCE(q.remaining_quota, 0) AS previous_quota
+			FROM employees e
+			LEFT JOIN employee_attendance_quotas q ON e.id = q.employee_id AND q.attendance_type_id = ?
+		),
+		upserted AS (
+			INSERT INTO employee_attendance_quotas (employee_id, attendance_type_id, remaining_quota)
+			SELECT cq.employee_id, ?, cq.previous_quota + ?
+			FROM current_quotas cq
+			ON CONFLICT (employee_id, attendance_type_id)
+			DO UPDATE SET remaining_quota = employee_attendance_quotas.remaining_quota + ?, updated_at = NOW()
+			RETURNING employee_id, remaining_quota
+		)
+		INSERT INTO attendance_quota_audit_logs (employee_id, attendance_type_id, previous_quota, new_quota, reason)
+		SELECT cq.employee_id, ?, cq.previous_quota, u.remaining_quota, 'manual_set'
+		FROM current_quotas cq
+		JOIN upserted u ON cq.employee_id = u.employee_id
+	`)
+
+	result, err := tx.ExecContext(ctx, query, typeID, typeID, increment, increment, typeID)
+	if err != nil {
+		return 0, fmt.Errorf("tx.ExecContext: %w", err)
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("result.RowsAffected: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("tx.Commit: %w", err)
+	}
+
+	return affected, nil
+}
+
 // GetQuotaAuditLogs returns all audit logs for quota changes, ordered by most recent first.
 func (d *DB) GetQuotaAuditLogs(ctx context.Context) ([]QuotaAuditLog, error) {
 	query := `
