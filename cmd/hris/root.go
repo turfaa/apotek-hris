@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/turfaa/apotek-hris/cmd/attendance"
+
 	"github.com/spf13/cobra"
 )
 
@@ -19,6 +21,7 @@ var (
 
 func init() {
 	rootCmd.PersistentFlags().StringSliceVarP(&configFiles, "config", "c", []string{"config/config.yaml", "config/secret.yaml"}, "config file paths")
+	rootCmd.AddCommand(attendance.Command())
 }
 
 func Execute() error {

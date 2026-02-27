@@ -122,10 +122,10 @@ func (s *Service) SetEmployeeQuota(ctx context.Context, request SetEmployeeAtten
 	return quota, nil
 }
 
-func (s *Service) IncrementQuotaForAllEmployees(ctx context.Context, typeID int64, increment int) (int64, error) {
-	affected, err := s.db.IncrementQuotaForAllEmployees(ctx, typeID, increment)
+func (s *Service) IncrementQuotaForEmployees(ctx context.Context, employeeIDs []int64, typeID int64, increment int) (int64, error) {
+	affected, err := s.db.IncrementQuotaForEmployees(ctx, employeeIDs, typeID, increment)
 	if err != nil {
-		return 0, fmt.Errorf("increment quota for all employees in db: %w", err)
+		return 0, fmt.Errorf("increment quota for employees in db: %w", err)
 	}
 
 	return affected, nil

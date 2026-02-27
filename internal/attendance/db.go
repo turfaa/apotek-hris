@@ -496,11 +496,15 @@ func (d *DB) GetEmployeeQuotas(ctx context.Context, employeeID int64) ([]Employe
 	return quotas, nil
 }
 
-// IncrementQuotaForAllEmployees increases the remaining quota by the given increment
-// for all employees for the specified attendance type. Employees without an existing
+// IncrementQuotaForEmployees increases the remaining quota by the given increment
+// for the specified employees and attendance type. Employees without an existing
 // quota record will have one created with the increment as their initial quota.
 // Returns the number of employees affected.
-func (d *DB) IncrementQuotaForAllEmployees(ctx context.Context, typeID int64, increment int) (int64, error) {
+func (d *DB) IncrementQuotaForEmployees(ctx context.Context, employeeIDs []int64, typeID int64, increment int) (int64, error) {
+	if len(employeeIDs) == 0 {
+		return 0, nil
+	}
+
 	tx, err := d.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return 0, fmt.Errorf("d.db.BeginTxx: %w", err)
@@ -510,9 +514,9 @@ func (d *DB) IncrementQuotaForAllEmployees(ctx context.Context, typeID int64, in
 
 	query := tx.Rebind(`
 		WITH current_quotas AS (
-			SELECT e.id AS employee_id, COALESCE(q.remaining_quota, 0) AS previous_quota
-			FROM employees e
-			LEFT JOIN employee_attendance_quotas q ON e.id = q.employee_id AND q.attendance_type_id = ?
+			SELECT eid AS employee_id, COALESCE(q.remaining_quota, 0) AS previous_quota
+			FROM unnest(?::bigint[]) AS eid
+			LEFT JOIN employee_attendance_quotas q ON eid = q.employee_id AND q.attendance_type_id = ?
 		),
 		upserted AS (
 			INSERT INTO employee_attendance_quotas (employee_id, attendance_type_id, remaining_quota)
@@ -528,7 +532,7 @@ func (d *DB) IncrementQuotaForAllEmployees(ctx context.Context, typeID int64, in
 		JOIN upserted u ON cq.employee_id = u.employee_id
 	`)
 
-	result, err := tx.ExecContext(ctx, query, typeID, typeID, increment, increment, typeID)
+	result, err := tx.ExecContext(ctx, query, employeeIDs, typeID, typeID, increment, increment, typeID)
 	if err != nil {
 		return 0, fmt.Errorf("tx.ExecContext: %w", err)
 	}
