@@ -12,6 +12,8 @@ func (h *Handler) registerAttendanceRoutes(r chi.Router) {
 	r.Post("/types", h.CreateAttendanceType)
 	r.Post("/types/{typeID}/enable-quota", h.EnableAttendanceTypeQuota)
 	r.Get("/quotas", h.GetAllQuotas)
+	r.Get("/quotas/audit-logs", h.GetQuotaAuditLogs)
+	r.Get("/quotas/audit-logs/{employeeID}", h.GetEmployeeQuotaAuditLogs)
 	r.Get("/quotas/{employeeID}", h.GetEmployeeQuotas)
 	r.Put("/quotas/{employeeID}/{typeID}", h.SetEmployeeQuota)
 	r.Put("/{employeeID}/{date}", h.UpsertAttendance)

@@ -211,6 +211,38 @@ func (h *Handler) SetEmployeeQuota(w http.ResponseWriter, r *http.Request) {
 	httpx.Ok(w, quota)
 }
 
+func (h *Handler) GetQuotaAuditLogs(w http.ResponseWriter, r *http.Request) {
+	logs, err := h.service.GetQuotaAuditLogs(r.Context())
+	if err != nil {
+		httpServiceError(w, err)
+		return
+	}
+
+	httpx.Ok(w, logs)
+}
+
+func (h *Handler) GetEmployeeQuotaAuditLogs(w http.ResponseWriter, r *http.Request) {
+	employeeIDStr := chi.URLParam(r, "employeeID")
+	if employeeIDStr == "" {
+		httpx.Error(w, errors.New("employeeID is required"), http.StatusBadRequest)
+		return
+	}
+
+	employeeID, err := strconv.ParseInt(employeeIDStr, 10, 64)
+	if err != nil {
+		httpx.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	logs, err := h.service.GetEmployeeQuotaAuditLogs(r.Context(), employeeID)
+	if err != nil {
+		httpServiceError(w, err)
+		return
+	}
+
+	httpx.Ok(w, logs)
+}
+
 func httpServiceError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, sql.ErrNoRows):

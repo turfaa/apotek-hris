@@ -60,6 +60,29 @@ type EmployeeAttendanceQuota struct {
 	UpdatedAt      time.Time `db:"updated_at" json:"updatedAt"`
 }
 
+// QuotaAuditReason describes why a quota changed.
+type QuotaAuditReason string
+
+const (
+	// QuotaAuditReasonManualSet is used when an admin explicitly sets the quota value.
+	QuotaAuditReasonManualSet QuotaAuditReason = "manual_set"
+	// QuotaAuditReasonAttendanceDeduction is used when quota is decremented by marking attendance.
+	QuotaAuditReasonAttendanceDeduction QuotaAuditReason = "attendance_deduction"
+	// QuotaAuditReasonAttendanceRestoration is used when quota is restored by changing attendance type.
+	QuotaAuditReasonAttendanceRestoration QuotaAuditReason = "attendance_restoration"
+)
+
+// QuotaAuditLog records a change to an employee's attendance quota.
+type QuotaAuditLog struct {
+	ID               int64            `db:"id" json:"id"`
+	EmployeeID       int64            `db:"employee_id" json:"employeeID"`
+	AttendanceType   Type             `db:"attendance_type" json:"attendanceType"`
+	PreviousQuota    int              `db:"previous_quota" json:"previousQuota"`
+	NewQuota         int              `db:"new_quota" json:"newQuota"`
+	Reason           QuotaAuditReason `db:"reason" json:"reason"`
+	CreatedAt        time.Time        `db:"created_at" json:"createdAt"`
+}
+
 type SetEmployeeAttendanceQuotaRequest struct {
 	EmployeeID       int64 `json:"-" validate:"required,gt=0"`
 	AttendanceTypeID int64 `json:"-" validate:"required,gt=0"`
