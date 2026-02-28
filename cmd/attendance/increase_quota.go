@@ -1,10 +1,10 @@
-package attendance
+package attendancecmd
 
 import (
 	"fmt"
 	"log"
 
-	attendancesvc "github.com/turfaa/apotek-hris/internal/attendance"
+	"github.com/turfaa/apotek-hris/internal/attendance"
 	"github.com/turfaa/apotek-hris/internal/config"
 	"github.com/turfaa/apotek-hris/internal/hris"
 	"github.com/turfaa/apotek-hris/pkg/database"
@@ -51,7 +51,7 @@ var increaseQuotaCmd = &cobra.Command{
 			employeeIDs[i] = e.ID
 		}
 
-		attendanceSvc := attendancesvc.NewService(db)
+		attendanceSvc := attendance.NewService(db)
 		affected, err := attendanceSvc.IncrementQuotaForEmployees(ctx, employeeIDs, attendanceTypeID, quotaIncrement)
 		if err != nil {
 			log.Fatalf("Failed to increase quota: %v", err)

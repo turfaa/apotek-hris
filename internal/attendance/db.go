@@ -505,14 +505,7 @@ func (d *DB) IncrementQuotaForEmployees(ctx context.Context, employeeIDs []int64
 		return 0, nil
 	}
 
-	tx, err := d.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return 0, fmt.Errorf("d.db.BeginTxx: %w", err)
-	}
-
-	defer tx.Rollback()
-
-	query := tx.Rebind(`
+	query := d.db.Rebind(`
 		WITH current_quotas AS (
 			SELECT eid AS employee_id, COALESCE(q.remaining_quota, 0) AS previous_quota
 			FROM unnest(?::bigint[]) AS eid
@@ -532,18 +525,14 @@ func (d *DB) IncrementQuotaForEmployees(ctx context.Context, employeeIDs []int64
 		JOIN upserted u ON cq.employee_id = u.employee_id
 	`)
 
-	result, err := tx.ExecContext(ctx, query, employeeIDs, typeID, typeID, increment, increment, typeID)
+	result, err := d.db.ExecContext(ctx, query, employeeIDs, typeID, typeID, increment, increment, typeID)
 	if err != nil {
-		return 0, fmt.Errorf("tx.ExecContext: %w", err)
+		return 0, fmt.Errorf("d.db.ExecContext: %w", err)
 	}
 
 	affected, err := result.RowsAffected()
 	if err != nil {
 		return 0, fmt.Errorf("result.RowsAffected: %w", err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		return 0, fmt.Errorf("tx.Commit: %w", err)
 	}
 
 	return affected, nil
