@@ -496,6 +496,48 @@ func (d *DB) GetEmployeeQuotas(ctx context.Context, employeeID int64) ([]Employe
 	return quotas, nil
 }
 
+// IncrementQuotaForEmployees increases the remaining quota by the given increment
+// for the specified employees and attendance type. Employees without an existing
+// quota record will have one created with the increment as their initial quota.
+// Returns the number of employees affected.
+func (d *DB) IncrementQuotaForEmployees(ctx context.Context, employeeIDs []int64, typeID int64, increment int) (int64, error) {
+	if len(employeeIDs) == 0 {
+		return 0, nil
+	}
+
+	query := d.db.Rebind(`
+		WITH current_quotas AS (
+			SELECT eid AS employee_id, COALESCE(q.remaining_quota, 0) AS previous_quota
+			FROM unnest(?::bigint[]) AS eid
+			LEFT JOIN employee_attendance_quotas q ON eid = q.employee_id AND q.attendance_type_id = ?
+		),
+		upserted AS (
+			INSERT INTO employee_attendance_quotas (employee_id, attendance_type_id, remaining_quota)
+			SELECT cq.employee_id, ?, cq.previous_quota + ?
+			FROM current_quotas cq
+			ON CONFLICT (employee_id, attendance_type_id)
+			DO UPDATE SET remaining_quota = employee_attendance_quotas.remaining_quota + ?, updated_at = NOW()
+			RETURNING employee_id, remaining_quota
+		)
+		INSERT INTO attendance_quota_audit_logs (employee_id, attendance_type_id, previous_quota, new_quota, reason)
+		SELECT cq.employee_id, ?, cq.previous_quota, u.remaining_quota, 'manual_set'
+		FROM current_quotas cq
+		JOIN upserted u ON cq.employee_id = u.employee_id
+	`)
+
+	result, err := d.db.ExecContext(ctx, query, employeeIDs, typeID, typeID, increment, increment, typeID)
+	if err != nil {
+		return 0, fmt.Errorf("d.db.ExecContext: %w", err)
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("result.RowsAffected: %w", err)
+	}
+
+	return affected, nil
+}
+
 // GetQuotaAuditLogs returns all audit logs for quota changes, ordered by most recent first.
 func (d *DB) GetQuotaAuditLogs(ctx context.Context) ([]QuotaAuditLog, error) {
 	query := `
