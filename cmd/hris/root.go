@@ -21,7 +21,7 @@ var (
 
 func init() {
 	rootCmd.PersistentFlags().StringSliceVarP(&configFiles, "config", "c", []string{"config/config.yaml", "config/secret.yaml"}, "config file paths")
-	rootCmd.AddCommand(attendancecmd.Command())
+	rootCmd.AddCommand(attendance.Command())
 }
 
 func Execute() error {

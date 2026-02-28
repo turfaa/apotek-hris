@@ -1,4 +1,4 @@
-package attendancecmd
+package attendance
 
 import (
 	"fmt"

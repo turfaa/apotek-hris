@@ -1,4 +1,4 @@
-package attendancecmd
+package attendance
 
 import "github.com/spf13/cobra"
 
