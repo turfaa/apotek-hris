@@ -1,7 +1,6 @@
 package attendance
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/turfaa/apotek-hris/internal/attendance"
@@ -57,7 +56,7 @@ var increaseQuotaCmd = &cobra.Command{
 			log.Fatalf("Failed to increase quota: %v", err)
 		}
 
-		fmt.Printf("Successfully increased quota by %d for attendance type %d. Affected %d employees.\n", quotaIncrement, attendanceTypeID, affected)
+		log.Printf("Successfully increased quota by %d for attendance type %d. Affected %d employees.", quotaIncrement, attendanceTypeID, affected)
 	},
 }
 
