@@ -78,17 +78,7 @@ func (s *Server) setupRoutes(r *chi.Mux) {
 	salaryService := salary.NewService(s.db, hrisService, attendanceService)
 
 	hrisHandler := hris.NewHandler(hrisService)
-	attendanceHandler := attendance.NewHandler(attendanceService, func(ctx context.Context) ([]int64, error) {
-		employees, err := hrisService.GetEmployees(ctx)
-		if err != nil {
-			return nil, err
-		}
-		ids := make([]int64, len(employees))
-		for i, e := range employees {
-			ids[i] = e.ID
-		}
-		return ids, nil
-	})
+	attendanceHandler := attendance.NewHandler(attendanceService, &hrisEmployeeIDsGetter{hrisService})
 	salaryHandler := salary.NewHandler(salaryService)
 
 	r.Group(func(r chi.Router) {
@@ -133,4 +123,21 @@ func (s *Server) handleAPIDocs() http.HandlerFunc {
 		// ServeFile handles ETag and Last-Modified headers automatically
 		http.ServeFile(w, r, "docs/index.html")
 	}
+}
+
+// hrisEmployeeIDsGetter adapts hris.Service to the attendance.EmployeeIDsGetter interface.
+type hrisEmployeeIDsGetter struct {
+	hris *hris.Service
+}
+
+func (g *hrisEmployeeIDsGetter) GetEmployeeIDs(ctx context.Context) ([]int64, error) {
+	employees, err := g.hris.GetEmployees(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]int64, len(employees))
+	for i, e := range employees {
+		ids[i] = e.ID
+	}
+	return ids, nil
 }
