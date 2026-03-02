@@ -1,7 +1,6 @@
 package attendance
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"net/http"
@@ -9,24 +8,20 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-json-experiment/json"
+	"github.com/turfaa/apotek-hris/internal/hris"
 	"github.com/turfaa/apotek-hris/pkg/httpx"
 	"github.com/turfaa/apotek-hris/pkg/timex"
 	"github.com/turfaa/apotek-hris/pkg/validatorx"
 	"github.com/turfaa/go-date"
 )
 
-// EmployeeIDsGetter provides employee IDs without importing the hris domain.
-type EmployeeIDsGetter interface {
-	GetEmployeeIDs(ctx context.Context) ([]int64, error)
-}
-
 type Handler struct {
-	service        *Service
-	employeeIDs    EmployeeIDsGetter
+	service     *Service
+	hrisService *hris.Service
 }
 
-func NewHandler(service *Service, employeeIDs EmployeeIDsGetter) *Handler {
-	return &Handler{service: service, employeeIDs: employeeIDs}
+func NewHandler(service *Service, hrisService *hris.Service) *Handler {
+	return &Handler{service: service, hrisService: hrisService}
 }
 
 func (h *Handler) GetAttendancesBetweenDates(w http.ResponseWriter, r *http.Request) {
@@ -155,10 +150,15 @@ func (h *Handler) GetAllQuotas(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	employeeIDs, err := h.employeeIDs.GetEmployeeIDs(r.Context())
+	employees, err := h.hrisService.GetEmployees(r.Context())
 	if err != nil {
 		httpServiceError(w, err)
 		return
+	}
+
+	employeeIDs := make([]int64, len(employees))
+	for i, e := range employees {
+		employeeIDs[i] = e.ID
 	}
 
 	pages := GroupQuotasByAttendanceType(quotas, quotaEnabledTypes, employeeIDs)
