@@ -1,6 +1,7 @@
 package attendance
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"net/http"
@@ -14,12 +15,17 @@ import (
 	"github.com/turfaa/go-date"
 )
 
+// EmployeeIDsGetter returns all employee IDs. This allows the attendance
+// package to reference employees without importing the hris domain.
+type EmployeeIDsGetter func(ctx context.Context) ([]int64, error)
+
 type Handler struct {
-	service *Service
+	service            *Service
+	getEmployeeIDs     EmployeeIDsGetter
 }
 
-func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+func NewHandler(service *Service, getEmployeeIDs EmployeeIDsGetter) *Handler {
+	return &Handler{service: service, getEmployeeIDs: getEmployeeIDs}
 }
 
 func (h *Handler) GetAttendancesBetweenDates(w http.ResponseWriter, r *http.Request) {
@@ -148,7 +154,13 @@ func (h *Handler) GetAllQuotas(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pages := GroupQuotasByAttendanceType(quotas, quotaEnabledTypes)
+	employeeIDs, err := h.getEmployeeIDs(r.Context())
+	if err != nil {
+		httpServiceError(w, err)
+		return
+	}
+
+	pages := GroupQuotasByAttendanceType(quotas, quotaEnabledTypes, employeeIDs)
 	httpx.Ok(w, pages)
 }
 

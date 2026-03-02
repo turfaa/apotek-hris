@@ -448,27 +448,24 @@ func (d *DB) getEmployeeQuotaByID(ctx context.Context, id int64) (EmployeeAttend
 	return quota, nil
 }
 
-// GetAllQuotas returns quota allocations for all employees across all quota-enabled attendance types.
-// Employees without a quota entry for a given type are included with remaining_quota = 0.
+// GetAllQuotas returns all quota allocations across all employees for quota-enabled attendance types.
 func (d *DB) GetAllQuotas(ctx context.Context) ([]EmployeeAttendanceQuota, error) {
 	query := `
 		SELECT
-			COALESCE(q.id, 0) AS id,
-			e.id AS employee_id,
+			q.id,
+			q.employee_id,
 			at.id AS "attendance_type.id",
 			at.name AS "attendance_type.name",
 			at.payable_type AS "attendance_type.payable_type",
 			at.has_quota AS "attendance_type.has_quota",
 			at.created_at AS "attendance_type.created_at",
 			at.updated_at AS "attendance_type.updated_at",
-			COALESCE(q.remaining_quota, 0) AS remaining_quota,
-			COALESCE(q.created_at, e.created_at) AS created_at,
-			COALESCE(q.updated_at, e.updated_at) AS updated_at
-		FROM employees e
-		CROSS JOIN attendance_types at
-		LEFT JOIN employee_attendance_quotas q ON q.employee_id = e.id AND q.attendance_type_id = at.id
-		WHERE at.has_quota = TRUE
-		ORDER BY at.name, e.id
+			q.remaining_quota,
+			q.created_at,
+			q.updated_at
+		FROM employee_attendance_quotas q
+		JOIN attendance_types at ON q.attendance_type_id = at.id
+		ORDER BY at.name, q.employee_id
 	`
 
 	var quotas []EmployeeAttendanceQuota
