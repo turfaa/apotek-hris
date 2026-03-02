@@ -96,8 +96,9 @@ type AttendanceTypeQuotaPage struct {
 }
 
 // GroupQuotasByAttendanceType groups a flat list of employee quotas into pages keyed by attendance type.
-// The order of pages preserves the first-seen order from the input slice.
-func GroupQuotasByAttendanceType(quotas []EmployeeAttendanceQuota) []AttendanceTypeQuotaPage {
+// Any quota-enabled types from quotaEnabledTypes that have no quota entries are included with empty Quotas slices.
+// The order of pages preserves the first-seen order from the input slice, followed by any added quota-enabled types sorted by name.
+func GroupQuotasByAttendanceType(quotas []EmployeeAttendanceQuota, quotaEnabledTypes []Type) []AttendanceTypeQuotaPage {
 	pageMap := make(map[int64]*AttendanceTypeQuotaPage)
 	var pageOrder []int64
 
@@ -110,6 +111,17 @@ func GroupQuotasByAttendanceType(quotas []EmployeeAttendanceQuota) []AttendanceT
 			pageOrder = append(pageOrder, typeID)
 		}
 		pageMap[typeID].Quotas = append(pageMap[typeID].Quotas, q)
+	}
+
+	// Add quota-enabled types that have no entries yet.
+	for _, t := range quotaEnabledTypes {
+		if _, exists := pageMap[t.ID]; !exists {
+			pageMap[t.ID] = &AttendanceTypeQuotaPage{
+				AttendanceType: t,
+				Quotas:         []EmployeeAttendanceQuota{},
+			}
+			pageOrder = append(pageOrder, t.ID)
+		}
 	}
 
 	pages := make([]AttendanceTypeQuotaPage, 0, len(pageOrder))

@@ -82,6 +82,15 @@ func (s *Service) CreateAttendanceType(ctx context.Context, request CreateAttend
 	return attendanceType, nil
 }
 
+func (s *Service) GetQuotaEnabledAttendanceTypes(ctx context.Context) ([]Type, error) {
+	types, err := s.db.GetQuotaEnabledAttendanceTypes(ctx)
+	if err != nil {
+		return []Type{}, fmt.Errorf("get quota-enabled attendance types from db: %w", err)
+	}
+
+	return types, nil
+}
+
 func (s *Service) GetAllQuotas(ctx context.Context) ([]EmployeeAttendanceQuota, error) {
 	quotas, err := s.db.GetAllQuotas(ctx)
 	if err != nil {

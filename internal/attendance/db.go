@@ -343,10 +343,19 @@ func (d *DB) EnableAttendanceTypeQuota(ctx context.Context, typeID int64) (Type,
 }
 
 func (d *DB) GetAttendanceTypes(ctx context.Context) ([]Type, error) {
-	query := `
+	return d.getAttendanceTypes(ctx, "")
+}
+
+func (d *DB) GetQuotaEnabledAttendanceTypes(ctx context.Context) ([]Type, error) {
+	return d.getAttendanceTypes(ctx, "WHERE has_quota = TRUE")
+}
+
+func (d *DB) getAttendanceTypes(ctx context.Context, whereClause string) ([]Type, error) {
+	query := fmt.Sprintf(`
 		SELECT id, name, payable_type, has_quota, created_at, updated_at
 		FROM attendance_types
-	`
+		%s
+	`, whereClause)
 
 	var types []Type
 	if err := d.db.SelectContext(ctx, &types, query); err != nil {

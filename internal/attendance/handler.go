@@ -142,7 +142,13 @@ func (h *Handler) GetAllQuotas(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pages := GroupQuotasByAttendanceType(quotas)
+	quotaEnabledTypes, err := h.service.GetQuotaEnabledAttendanceTypes(r.Context())
+	if err != nil {
+		httpServiceError(w, err)
+		return
+	}
+
+	pages := GroupQuotasByAttendanceType(quotas, quotaEnabledTypes)
 	httpx.Ok(w, pages)
 }
 
