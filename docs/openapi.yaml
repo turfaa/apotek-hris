@@ -450,8 +450,9 @@ paths:
         - Attendance
       summary: Get all attendance quotas
       description: >-
-        Get all attendance quota allocations across all employees, grouped by attendance type.
-        Quota-enabled attendance types are always included even if no employee has a quota entry for them.
+        Get all attendance quota allocations grouped by attendance type.
+        Every employee is included for each quota-enabled attendance type.
+        If an employee does not have a quota entry for a given type, their remaining quota is returned as 0.
       responses:
         '200':
           description: Successful response
