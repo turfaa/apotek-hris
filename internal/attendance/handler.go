@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-json-experiment/json"
+	"github.com/turfaa/apotek-hris/internal/hris"
 	"github.com/turfaa/apotek-hris/pkg/httpx"
 	"github.com/turfaa/apotek-hris/pkg/timex"
 	"github.com/turfaa/apotek-hris/pkg/validatorx"
@@ -15,11 +16,12 @@ import (
 )
 
 type Handler struct {
-	service *Service
+	service     *Service
+	hrisService *hris.Service
 }
 
-func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+func NewHandler(service *Service, hrisService *hris.Service) *Handler {
+	return &Handler{service: service, hrisService: hrisService}
 }
 
 func (h *Handler) GetAttendancesBetweenDates(w http.ResponseWriter, r *http.Request) {
@@ -148,7 +150,18 @@ func (h *Handler) GetAllQuotas(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pages := GroupQuotasByAttendanceType(quotas, quotaEnabledTypes)
+	employees, err := h.hrisService.GetEmployees(r.Context())
+	if err != nil {
+		httpServiceError(w, err)
+		return
+	}
+
+	employeeIDs := make([]int64, len(employees))
+	for i, e := range employees {
+		employeeIDs[i] = e.ID
+	}
+
+	pages := GroupQuotasByAttendanceType(quotas, quotaEnabledTypes, employeeIDs)
 	httpx.Ok(w, pages)
 }
 

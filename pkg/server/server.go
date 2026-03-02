@@ -78,7 +78,7 @@ func (s *Server) setupRoutes(r *chi.Mux) {
 	salaryService := salary.NewService(s.db, hrisService, attendanceService)
 
 	hrisHandler := hris.NewHandler(hrisService)
-	attendanceHandler := attendance.NewHandler(attendanceService)
+	attendanceHandler := attendance.NewHandler(attendanceService, hrisService)
 	salaryHandler := salary.NewHandler(salaryService)
 
 	r.Group(func(r chi.Router) {
@@ -124,3 +124,4 @@ func (s *Server) handleAPIDocs() http.HandlerFunc {
 		http.ServeFile(w, r, "docs/index.html")
 	}
 }
+

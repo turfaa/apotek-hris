@@ -96,10 +96,13 @@ type AttendanceTypeQuotaPage struct {
 }
 
 // GroupQuotasByAttendanceType groups a flat list of employee quotas into pages keyed by attendance type.
-// Any quota-enabled types from quotaEnabledTypes that have no quota entries are included with empty Quotas slices.
-// The order of pages preserves the first-seen order from the input slice, followed by any added quota-enabled types sorted by name.
-func GroupQuotasByAttendanceType(quotas []EmployeeAttendanceQuota, quotaEnabledTypes []Type) []AttendanceTypeQuotaPage {
+// For each quota-enabled type, every employee in allEmployeeIDs is included. Employees without a quota
+// entry for a given type get a zero-value entry with remaining_quota = 0.
+// The order of pages preserves the first-seen order from the input slice, followed by any added quota-enabled types.
+func GroupQuotasByAttendanceType(quotas []EmployeeAttendanceQuota, quotaEnabledTypes []Type, allEmployeeIDs []int64) []AttendanceTypeQuotaPage {
 	pageMap := make(map[int64]*AttendanceTypeQuotaPage)
+	// Track which employees already have a quota entry per type.
+	existingEmployees := make(map[int64]map[int64]bool) // typeID -> employeeID -> true
 	var pageOrder []int64
 
 	for _, q := range quotas {
@@ -108,9 +111,11 @@ func GroupQuotasByAttendanceType(quotas []EmployeeAttendanceQuota, quotaEnabledT
 			pageMap[typeID] = &AttendanceTypeQuotaPage{
 				AttendanceType: q.AttendanceType,
 			}
+			existingEmployees[typeID] = make(map[int64]bool)
 			pageOrder = append(pageOrder, typeID)
 		}
 		pageMap[typeID].Quotas = append(pageMap[typeID].Quotas, q)
+		existingEmployees[typeID][q.EmployeeID] = true
 	}
 
 	// Add quota-enabled types that have no entries yet.
@@ -118,9 +123,23 @@ func GroupQuotasByAttendanceType(quotas []EmployeeAttendanceQuota, quotaEnabledT
 		if _, exists := pageMap[t.ID]; !exists {
 			pageMap[t.ID] = &AttendanceTypeQuotaPage{
 				AttendanceType: t,
-				Quotas:         []EmployeeAttendanceQuota{},
 			}
+			existingEmployees[t.ID] = make(map[int64]bool)
 			pageOrder = append(pageOrder, t.ID)
+		}
+	}
+
+	// Fill in missing employees with quota 0 for each type.
+	for _, typeID := range pageOrder {
+		page := pageMap[typeID]
+		for _, empID := range allEmployeeIDs {
+			if !existingEmployees[typeID][empID] {
+				page.Quotas = append(page.Quotas, EmployeeAttendanceQuota{
+					EmployeeID:     empID,
+					AttendanceType: page.AttendanceType,
+					RemainingQuota: 0,
+				})
+			}
 		}
 	}
 
