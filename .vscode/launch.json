@@ -8,7 +8,9 @@
             "mode": "auto",
             "program": "${workspaceFolder}",
             "cwd": "${workspaceFolder}",
-            "args": ["serve"],
+            "args": [
+                "serve"
+            ],
         },
         {
             "name": "Run DB Migrations",
@@ -17,7 +19,26 @@
             "mode": "auto",
             "program": "${workspaceFolder}",
             "cwd": "${workspaceFolder}",
-            "args": ["migrate", "up"],
+            "args": [
+                "migrate",
+                "up"
+            ],
+        },
+        {
+            "name": "Increase Cuti (Berbayar) Quota",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "attendance",
+                "increase-quota",
+                "--type-id",
+                "5",
+                "--increment",
+                "1"
+            ],
         }
     ]
 }
