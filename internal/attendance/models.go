@@ -74,13 +74,13 @@ const (
 
 // QuotaAuditLog records a change to an employee's attendance quota.
 type QuotaAuditLog struct {
-	ID               int64            `db:"id" json:"id"`
-	EmployeeID       int64            `db:"employee_id" json:"employeeID"`
-	AttendanceType   Type             `db:"attendance_type" json:"attendanceType"`
-	PreviousQuota    int              `db:"previous_quota" json:"previousQuota"`
-	NewQuota         int              `db:"new_quota" json:"newQuota"`
-	Reason           QuotaAuditReason `db:"reason" json:"reason"`
-	CreatedAt        time.Time        `db:"created_at" json:"createdAt"`
+	ID             int64            `db:"id" json:"id"`
+	EmployeeID     int64            `db:"employee_id" json:"employeeID"`
+	AttendanceType Type             `db:"attendance_type" json:"attendanceType"`
+	PreviousQuota  int              `db:"previous_quota" json:"previousQuota"`
+	NewQuota       int              `db:"new_quota" json:"newQuota"`
+	Reason         QuotaAuditReason `db:"reason" json:"reason"`
+	CreatedAt      time.Time        `db:"created_at" json:"createdAt"`
 }
 
 type SetEmployeeAttendanceQuotaRequest struct {
@@ -91,8 +91,8 @@ type SetEmployeeAttendanceQuotaRequest struct {
 
 // AttendanceTypeQuotaPage groups employee quotas by their attendance type.
 type AttendanceTypeQuotaPage struct {
-	AttendanceType Type                       `json:"attendanceType"`
-	Quotas         []EmployeeAttendanceQuota  `json:"quotas"`
+	AttendanceType Type                      `json:"attendanceType"`
+	Quotas         []EmployeeAttendanceQuota `json:"quotas"`
 }
 
 // GroupQuotasByAttendanceType groups a flat list of employee quotas into pages keyed by attendance type.
@@ -135,6 +135,7 @@ func GroupQuotasByAttendanceType(quotas []EmployeeAttendanceQuota, quotaEnabledT
 		for _, empID := range allEmployeeIDs {
 			if !existingEmployees[typeID][empID] {
 				page.Quotas = append(page.Quotas, EmployeeAttendanceQuota{
+					ID:             -(typeID*1_000_000_000 + empID), // fake id to avoid conflicts with real ids
 					EmployeeID:     empID,
 					AttendanceType: page.AttendanceType,
 					RemainingQuota: 0,
