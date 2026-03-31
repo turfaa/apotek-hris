@@ -57,6 +57,7 @@ func (s *Service) GetSalary(ctx context.Context, employeeID int64, month timex.M
 		staticComponents     []StaticComponent
 		additionalComponents []AdditionalComponent
 		extraInfos           []ExtraInfo
+		quotas               []attendance.EmployeeAttendanceQuota
 	)
 
 	eg, gCtx := errgroup.WithContext(ctx)
@@ -121,9 +122,33 @@ func (s *Service) GetSalary(ctx context.Context, employeeID int64, month timex.M
 		return nil
 	})
 
+	eg.Go(func() error {
+		var err error
+		quotas, err = s.attendanceService.GetEmployeeQuotas(gCtx, employeeID)
+		if err != nil {
+			return fmt.Errorf("get employee attendance quotas from attendance service: %w", err)
+		}
+
+		return nil
+	})
+
 	if err := eg.Wait(); err != nil {
 		return Salary{}, fmt.Errorf("wait for get salary: %w", err)
 	}
+
+	monthStartTime, _ := timex.BeginningOfDate(monthDateFrom.String())
+
+	quotaExtraInfos := make([]ExtraInfo, 0, len(quotas))
+	for _, q := range quotas {
+		quotaExtraInfos = append(quotaExtraInfos, ExtraInfo{
+			EmployeeID:  employeeID,
+			Month:       month,
+			Title:       fmt.Sprintf("Sisa %s", q.AttendanceType.Name),
+			Description: fmt.Sprintf("%d hari", q.RemainingQuota),
+			CreatedAt:   monthStartTime,
+		})
+	}
+	extraInfos = append(quotaExtraInfos, extraInfos...)
 
 	attendanceSummary := attendance.CreateEmployeeSummary(attendances)
 
