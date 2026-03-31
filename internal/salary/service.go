@@ -141,6 +141,8 @@ func (s *Service) GetSalary(ctx context.Context, employeeID int64, month timex.M
 	quotaExtraInfos := make([]ExtraInfo, 0, len(quotas))
 	for _, q := range quotas {
 		quotaExtraInfos = append(quotaExtraInfos, ExtraInfo{
+			EmployeeID:  employeeID,
+			Month:       month,
 			Title:       fmt.Sprintf("Sisa %s", q.AttendanceType.Name),
 			Description: fmt.Sprintf("%d hari", q.RemainingQuota),
 			CreatedAt:   monthStartTime,
