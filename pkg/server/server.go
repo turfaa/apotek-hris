@@ -124,4 +124,3 @@ func (s *Server) handleAPIDocs() http.HandlerFunc {
 		http.ServeFile(w, r, "docs/index.html")
 	}
 }
-
