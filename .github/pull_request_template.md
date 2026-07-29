@@ -6,6 +6,15 @@ Title should follow Conventional Commits, e.g. feat(attendance): add quota audit
 
 <!-- What this changes and why, in a few sentences. -->
 
+## AI attribution
+
+<!--
+Required. If any part of this change was written by an AI model, name the model here —
+the same name used in the commit's Co-Authored-By trailer, e.g. "Claude Opus 5"
+(see the co-author convention in CLAUDE.md).
+Name every model if more than one was used. Write "None" if written entirely by hand.
+-->
+
 ## Changes
 
 <!-- One bullet per module or area touched, with a short note on what changed there. -->
