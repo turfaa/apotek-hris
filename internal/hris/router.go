@@ -11,6 +11,8 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 func (h *Handler) registerEmployeeRoutes(r chi.Router) {
 	r.Get("/", h.GetEmployees)
 	r.Post("/", h.CreateEmployee)
+	r.Get("/{employeeID}", h.GetEmployee)
+	r.Put("/{employeeID}", h.UpdateEmployee)
 }
 
 func (h *Handler) registerWorkTypeRoutes(r chi.Router) {

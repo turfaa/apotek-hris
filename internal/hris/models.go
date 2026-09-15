@@ -24,6 +24,14 @@ type CreateEmployeeRequest struct {
 	ShowInAttendances *bool `json:"showInAttendances"`
 }
 
+type UpdateEmployeeRequest struct {
+	Name     string          `json:"name" validate:"required"`
+	ShiftFee decimal.Decimal `json:"shiftFee" validate:"dgt=0"`
+
+	// ShowInAttendances keeps its current value if not provided.
+	ShowInAttendances *bool `json:"showInAttendances"`
+}
+
 type WorkType struct {
 	ID          int64           `db:"id" json:"id"`
 	Name        string          `db:"name" json:"name"`

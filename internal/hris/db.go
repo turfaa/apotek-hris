@@ -103,6 +103,23 @@ func (d *DB) CreateEmployee(ctx context.Context, request CreateEmployeeRequest) 
 	return employee, nil
 }
 
+func (d *DB) UpdateEmployee(ctx context.Context, id int64, request UpdateEmployeeRequest) (Employee, error) {
+	query := `
+	UPDATE employees
+	SET name = ?, shift_fee = ?, show_in_attendances = COALESCE(?, show_in_attendances), updated_at = CURRENT_TIMESTAMP
+	WHERE id = ?
+	RETURNING id, name, shift_fee, show_in_attendances, created_at, updated_at`
+	query = d.db.Rebind(query)
+	args := []any{request.Name, request.ShiftFee, request.ShowInAttendances, id}
+
+	var employee Employee
+	if err := d.db.GetContext(ctx, &employee, query, args...); err != nil {
+		return Employee{}, fmt.Errorf("get context from db: %w", err)
+	}
+
+	return employee, nil
+}
+
 func (d *DB) UpdateEmployeeShiftFee(ctx context.Context, id int64, shiftFee decimal.Decimal) (Employee, error) {
 	query := `
 	UPDATE employees 
