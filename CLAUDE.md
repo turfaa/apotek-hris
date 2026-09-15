@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Apotek HRIS is a pharmacy Human Resource Information System built with Go. The system manages employees, work logs, attendance tracking, and salary calculations with support for static and additional salary components.
 
 The application uses:
-- **Go 1.25.0** with standard library patterns
+- **Go 1.27.1** with standard library patterns
 - **PostgreSQL** database with pgx driver (v5)
 - **Chi router** for HTTP routing
 - **Cobra** for CLI commands
@@ -189,7 +189,7 @@ Salary snapshots can be created to preserve historical salary data as JSON in th
 
 ### JSON Handling
 
-- Uses `github.com/go-json-experiment/json` instead of standard library
+- Uses the standard library `encoding/json/v2`
 - Custom MarshalJSON methods for computed fields (e.g., salary totals)
 - JSON field names use camelCase (via struct tags)
 

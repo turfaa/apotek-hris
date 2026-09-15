@@ -2,13 +2,13 @@ package salary
 
 import (
 	"database/sql"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-json-experiment/json"
 	"github.com/turfaa/apotek-hris/pkg/httpx"
 	"github.com/turfaa/apotek-hris/pkg/timex"
 	"github.com/turfaa/apotek-hris/pkg/validatorx"
