@@ -2,6 +2,7 @@ package hris
 
 import (
 	"database/sql"
+	"encoding/json/v2"
 	"errors"
 	"net/http"
 	"strconv"
@@ -12,7 +13,6 @@ import (
 	"github.com/turfaa/apotek-hris/pkg/validatorx"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-json-experiment/json"
 )
 
 const (

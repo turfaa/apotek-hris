@@ -1,11 +1,11 @@
 package salary
 
 import (
+	"encoding/json/v2"
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/go-json-experiment/json"
 	"github.com/turfaa/apotek-hris/pkg/timex"
 
 	decimal "github.com/shopspring/decimal"

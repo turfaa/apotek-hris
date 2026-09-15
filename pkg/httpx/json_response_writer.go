@@ -1,11 +1,10 @@
 package httpx
 
 import (
+	"encoding/json/v2"
 	"fmt"
 	"log"
 	"net/http"
-
-	"github.com/go-json-experiment/json"
 )
 
 type ErrorResponse struct {
