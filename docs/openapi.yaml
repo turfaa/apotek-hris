@@ -141,6 +141,89 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /api/v1/employees/{employeeID}:
+    get:
+      tags:
+        - Employees
+      summary: Get an employee
+      description: Get a single employee by ID
+      parameters:
+        - name: employeeID
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+        '400':
+          description: Invalid employee ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Employee not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags:
+        - Employees
+      summary: Update an employee
+      description: Update an existing employee's data
+      parameters:
+        - name: employeeID
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEmployeeRequest'
+      responses:
+        '200':
+          description: Employee updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Employee not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /api/v1/work-types:
     get:
       tags:
@@ -1273,6 +1356,22 @@ components:
         showInAttendances:
           type: boolean
           default: true
+      required:
+        - name
+        - shiftFee
+
+    UpdateEmployeeRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        shiftFee:
+          type: string
+          description: Decimal value as string
+          example: "100000.00"
+        showInAttendances:
+          type: boolean
+          description: Keeps its current value if not provided
       required:
         - name
         - shiftFee

@@ -58,6 +58,53 @@ func (h *Handler) CreateEmployee(w http.ResponseWriter, r *http.Request) {
 	httpx.Ok(w, employee)
 }
 
+func (h *Handler) GetEmployee(w http.ResponseWriter, r *http.Request) {
+	employeeID, err := employeeIDFromURL(r)
+	if err != nil {
+		httpx.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	employee, err := h.service.GetEmployee(r.Context(), employeeID)
+	if err != nil {
+		httpServiceError(w, err)
+		return
+	}
+
+	httpx.Ok(w, employee)
+}
+
+func (h *Handler) UpdateEmployee(w http.ResponseWriter, r *http.Request) {
+	employeeID, err := employeeIDFromURL(r)
+	if err != nil {
+		httpx.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	var req UpdateEmployeeRequest
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
+		httpx.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	employee, err := h.service.UpdateEmployee(r.Context(), employeeID, req)
+	if err != nil {
+		httpServiceError(w, err)
+		return
+	}
+
+	httpx.Ok(w, employee)
+}
+
+func employeeIDFromURL(r *http.Request) (int64, error) {
+	employeeIDStr := chi.URLParam(r, "employeeID")
+	if employeeIDStr == "" {
+		return 0, errors.New("employeeID is required")
+	}
+
+	return strconv.ParseInt(employeeIDStr, 10, 64)
+}
+
 func (h *Handler) GetWorkTypes(w http.ResponseWriter, r *http.Request) {
 	workTypes, err := h.service.GetWorkTypes(r.Context())
 	if err != nil {

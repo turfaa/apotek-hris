@@ -61,6 +61,19 @@ func (s *Service) CreateEmployee(ctx context.Context, request CreateEmployeeRequ
 	return employee, nil
 }
 
+func (s *Service) UpdateEmployee(ctx context.Context, employeeID int64, request UpdateEmployeeRequest) (Employee, error) {
+	if err := validatorx.Validate(request); err != nil {
+		return Employee{}, fmt.Errorf("invalid request: %w", err)
+	}
+
+	employee, err := s.db.UpdateEmployee(ctx, employeeID, request)
+	if err != nil {
+		return Employee{}, fmt.Errorf("update employee in db: %w", err)
+	}
+
+	return employee, nil
+}
+
 func (s *Service) GetWorkTypes(ctx context.Context) ([]WorkType, error) {
 	workTypes, err := s.db.GetWorkTypes(ctx)
 	if err != nil {
