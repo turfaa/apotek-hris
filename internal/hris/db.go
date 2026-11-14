@@ -27,7 +27,7 @@ func New(db *sqlx.DB) *DB {
 
 func (d *DB) GetEmployees(ctx context.Context) ([]Employee, error) {
 	query := `
-	SELECT id, name, shift_fee, show_in_attendances, created_at, updated_at 
+	SELECT id, name, shift_fee, show_in_attendances, is_active, created_at, updated_at 
 	FROM employees
 	ORDER BY id ASC`
 	query = d.db.Rebind(query)
@@ -46,7 +46,7 @@ func (d *DB) GetEmployeesByIDs(ctx context.Context, ids []int64) ([]Employee, er
 	}
 
 	query := `
-	SELECT id, name, shift_fee, show_in_attendances, created_at, updated_at
+	SELECT id, name, shift_fee, show_in_attendances, is_active, created_at, updated_at
 	FROM employees
 	WHERE id IN (?)`
 
@@ -67,7 +67,7 @@ func (d *DB) GetEmployeesByIDs(ctx context.Context, ids []int64) ([]Employee, er
 
 func (d *DB) GetEmployee(ctx context.Context, id int64) (Employee, error) {
 	query := `
-	SELECT id, name, shift_fee, show_in_attendances, created_at, updated_at
+	SELECT id, name, shift_fee, show_in_attendances, is_active, created_at, updated_at
 	FROM employees
 	WHERE id = ?`
 	query = d.db.Rebind(query)
@@ -83,9 +83,9 @@ func (d *DB) GetEmployee(ctx context.Context, id int64) (Employee, error) {
 
 func (d *DB) CreateEmployee(ctx context.Context, request CreateEmployeeRequest) (Employee, error) {
 	query := `
-	INSERT INTO employees (name, shift_fee, show_in_attendances) 
-	VALUES (?, ?, ?) 
-	RETURNING id, name, shift_fee, show_in_attendances, created_at, updated_at`
+	INSERT INTO employees (name, shift_fee, show_in_attendances, is_active)
+	VALUES (?, ?, ?, ?)
+	RETURNING id, name, shift_fee, show_in_attendances, is_active, created_at, updated_at`
 	query = d.db.Rebind(query)
 
 	showInAttendances := true
@@ -93,7 +93,12 @@ func (d *DB) CreateEmployee(ctx context.Context, request CreateEmployeeRequest) 
 		showInAttendances = *request.ShowInAttendances
 	}
 
-	args := []any{request.Name, request.ShiftFee, showInAttendances}
+	isActive := true
+	if request.IsActive != nil {
+		isActive = *request.IsActive
+	}
+
+	args := []any{request.Name, request.ShiftFee, showInAttendances, isActive}
 
 	var employee Employee
 	if err := d.db.GetContext(ctx, &employee, query, args...); err != nil {
@@ -106,11 +111,11 @@ func (d *DB) CreateEmployee(ctx context.Context, request CreateEmployeeRequest) 
 func (d *DB) UpdateEmployee(ctx context.Context, id int64, request UpdateEmployeeRequest) (Employee, error) {
 	query := `
 	UPDATE employees
-	SET name = ?, shift_fee = ?, show_in_attendances = COALESCE(?, show_in_attendances), updated_at = CURRENT_TIMESTAMP
+	SET name = ?, shift_fee = ?, show_in_attendances = COALESCE(?, show_in_attendances), is_active = COALESCE(?, is_active), updated_at = CURRENT_TIMESTAMP
 	WHERE id = ?
-	RETURNING id, name, shift_fee, show_in_attendances, created_at, updated_at`
+	RETURNING id, name, shift_fee, show_in_attendances, is_active, created_at, updated_at`
 	query = d.db.Rebind(query)
-	args := []any{request.Name, request.ShiftFee, request.ShowInAttendances, id}
+	args := []any{request.Name, request.ShiftFee, request.ShowInAttendances, request.IsActive, id}
 
 	var employee Employee
 	if err := d.db.GetContext(ctx, &employee, query, args...); err != nil {
@@ -125,7 +130,7 @@ func (d *DB) UpdateEmployeeShiftFee(ctx context.Context, id int64, shiftFee deci
 	UPDATE employees 
 	SET shift_fee = ?, updated_at = CURRENT_TIMESTAMP
 	WHERE id = ? 
-	RETURNING id, name, shift_fee, created_at, updated_at`
+	RETURNING id, name, shift_fee, show_in_attendances, is_active, created_at, updated_at`
 	query = d.db.Rebind(query)
 	args := []any{shiftFee, id}
 

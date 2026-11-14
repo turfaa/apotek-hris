@@ -11,6 +11,7 @@ type Employee struct {
 	Name              string          `db:"name" json:"name"`
 	ShiftFee          decimal.Decimal `db:"shift_fee" json:"shiftFee"`
 	ShowInAttendances bool            `db:"show_in_attendances" json:"showInAttendances"`
+	IsActive          bool            `db:"is_active" json:"isActive"`
 
 	CreatedAt time.Time `db:"created_at" json:"createdAt"`
 	UpdatedAt time.Time `db:"updated_at" json:"updatedAt"`
@@ -22,6 +23,9 @@ type CreateEmployeeRequest struct {
 
 	// ShowInAttendances will be true if not provided.
 	ShowInAttendances *bool `json:"showInAttendances"`
+
+	// IsActive will be true if not provided.
+	IsActive *bool `json:"isActive"`
 }
 
 type UpdateEmployeeRequest struct {
@@ -30,6 +34,9 @@ type UpdateEmployeeRequest struct {
 
 	// ShowInAttendances keeps its current value if not provided.
 	ShowInAttendances *bool `json:"showInAttendances"`
+
+	// IsActive keeps its current value if not provided.
+	IsActive *bool `json:"isActive"`
 }
 
 type WorkType struct {
