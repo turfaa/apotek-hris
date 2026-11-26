@@ -201,7 +201,7 @@ func (s *slip) writeFields() {
 	}{
 		{"Nama", s.doc.EmployeeName, true},
 		{"Periode", periodName(s.doc.Year, s.doc.Month), false},
-		{"No. Snapshot", fmt.Sprintf("%d", s.doc.SnapshotID), false},
+		{"No. Slip Gaji", fmt.Sprintf("%d", s.doc.SnapshotID), false},
 	}
 
 	pdf.Ln(6)
