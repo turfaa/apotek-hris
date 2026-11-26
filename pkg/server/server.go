@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/turfaa/apotek-hris/docs"
 	"github.com/turfaa/apotek-hris/internal/attendance"
 	"github.com/turfaa/apotek-hris/internal/hris"
 	"github.com/turfaa/apotek-hris/internal/salary"
@@ -75,8 +76,8 @@ func (s *Server) setupMiddleware(r *chi.Mux) {
 
 func (s *Server) setupRoutes(r *chi.Mux) {
 	r.Get("/health", s.handleHealth())
-	r.Get("/docs/openapi.yaml", s.handleOpenAPISpec())
-	r.Get("/docs", s.handleAPIDocs())
+	r.Get("/docs", docs.RedocHandler)
+	r.Get("/docs/openapi.yaml", docs.SpecHandler)
 
 	hrisService := hris.NewService(s.db)
 	attendanceService := attendance.NewService(s.db)
@@ -103,29 +104,5 @@ func (s *Server) handleHealth() http.HandlerFunc {
 		}
 
 		httpx.Ok(w, map[string]string{"status": "ok"})
-	}
-}
-
-func (s *Server) handleOpenAPISpec() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// Set cache control headers
-		// Cache for 5 minutes, allow public caches, must revalidate after expiry
-		w.Header().Set("Cache-Control", "public, max-age=300, must-revalidate")
-		w.Header().Set("Content-Type", "application/x-yaml")
-
-		// ServeFile handles ETag and Last-Modified headers automatically
-		http.ServeFile(w, r, "docs/openapi.yaml")
-	}
-}
-
-func (s *Server) handleAPIDocs() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// Set cache control headers for HTML docs
-		// Cache for 1 hour, allow public caches, must revalidate after expiry
-		w.Header().Set("Cache-Control", "public, max-age=3600, must-revalidate")
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-
-		// ServeFile handles ETag and Last-Modified headers automatically
-		http.ServeFile(w, r, "docs/index.html")
 	}
 }

@@ -41,7 +41,7 @@ paths:
       tags:
         - Documentation
       summary: Interactive API documentation
-      description: Get the interactive HTML API documentation (generated with Redocly)
+      description: Get the interactive HTML API documentation (rendered with Redoc)
       responses:
         '200':
           description: HTML documentation page
@@ -60,7 +60,7 @@ paths:
         '200':
           description: OpenAPI specification
           content:
-            application/x-yaml:
+            application/yaml:
               schema:
                 type: string
 
