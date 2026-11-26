@@ -115,7 +115,7 @@ curl http://localhost:8080/health
 
 ### Interactive Documentation
 
-When running with Docker, interactive API documentation is automatically generated using Redocly:
+The server renders `docs/openapi.yaml` with [Redoc](https://github.com/Redocly/redoc) v3.2.0. The spec and the Redoc page are embedded in the binary, so this works with `go run` as well as Docker:
 
 - **Interactive Docs**: `GET /docs` - Beautiful, interactive API documentation
 
