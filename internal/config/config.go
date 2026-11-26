@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 
+	"github.com/turfaa/apotek-hris/internal/salary/payslip"
 	"github.com/turfaa/apotek-hris/pkg/database"
 	"github.com/turfaa/apotek-hris/pkg/server"
 	"github.com/turfaa/apotek-hris/pkg/validatorx"
@@ -13,6 +14,10 @@ import (
 type Config struct {
 	Database database.Config `mapstructure:"database" validate:"required"`
 	Server   server.Config   `mapstructure:"server" validate:"required"`
+
+	// Pharmacy is printed on the letterhead of pay slips. It is optional:
+	// HRIS starts without it, and pay slip PDFs are refused until it is set.
+	Pharmacy payslip.Letterhead `mapstructure:"pharmacy"`
 }
 
 func Load(configPaths ...string) (Config, error) {

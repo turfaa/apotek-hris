@@ -7,3 +7,12 @@ database:
 server:
   port: 8080
   host: 0.0.0.0 
+
+# Printed on the letterhead of pay slips (slip gaji). Optional: until every
+# field is set, pay slip PDFs answer 503.
+pharmacy:
+  name: Apotek Contoh
+  license_number: "0000000000"
+  address: Jalan Contoh No. 1, Kota Contoh
+  email: kontak@example.com
+  phone: "0800000000"

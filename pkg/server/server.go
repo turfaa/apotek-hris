@@ -9,6 +9,7 @@ import (
 	"github.com/turfaa/apotek-hris/internal/attendance"
 	"github.com/turfaa/apotek-hris/internal/hris"
 	"github.com/turfaa/apotek-hris/internal/salary"
+	"github.com/turfaa/apotek-hris/internal/salary/payslip"
 	"github.com/turfaa/apotek-hris/pkg/httpx"
 
 	"github.com/go-chi/chi/v5"
@@ -18,15 +19,19 @@ import (
 )
 
 type Server struct {
-	config Config
-	db     *sqlx.DB
-	server *http.Server
+	config     Config
+	letterhead payslip.Letterhead
+	db         *sqlx.DB
+	server     *http.Server
 }
 
-func New(config Config, db *sqlx.DB) *Server {
+// New returns a server. letterhead is printed on pay slips; when it is not
+// configured, pay slip PDFs are refused.
+func New(config Config, letterhead payslip.Letterhead, db *sqlx.DB) *Server {
 	return &Server{
-		config: config,
-		db:     db,
+		config:     config,
+		letterhead: letterhead,
+		db:         db,
 	}
 }
 
@@ -75,7 +80,7 @@ func (s *Server) setupRoutes(r *chi.Mux) {
 
 	hrisService := hris.NewService(s.db)
 	attendanceService := attendance.NewService(s.db)
-	salaryService := salary.NewService(s.db, hrisService, attendanceService)
+	salaryService := salary.NewService(s.db, hrisService, attendanceService, s.letterhead)
 
 	hrisHandler := hris.NewHandler(hrisService)
 	attendanceHandler := attendance.NewHandler(attendanceService, hrisService)

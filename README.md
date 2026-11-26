@@ -60,6 +60,15 @@ database:
 server:
   port: 8080
   host: 0.0.0.0
+
+# Optional: the letterhead of pay slip PDFs. Until every field is set,
+# the pay slip endpoints answer 503.
+pharmacy:
+  name: Apotek Contoh
+  license_number: "0000000000"
+  address: Jalan Contoh No. 1, Kota Contoh
+  email: kontak@example.com
+  phone: "0800000000"
 ```
 
 **config/secret.yaml** - Sensitive credentials:

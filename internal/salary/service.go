@@ -10,6 +10,7 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/turfaa/apotek-hris/internal/attendance"
 	"github.com/turfaa/apotek-hris/internal/hris"
+	"github.com/turfaa/apotek-hris/internal/salary/payslip"
 	"github.com/turfaa/apotek-hris/pkg/timex"
 	"github.com/turfaa/apotek-hris/pkg/validatorx"
 	"golang.org/x/sync/errgroup"
@@ -24,13 +25,22 @@ type Service struct {
 	db                *DB
 	hrisService       *hris.Service
 	attendanceService *attendance.Service
+
+	// letterhead is printed on pay slips.
+	letterhead payslip.Letterhead
 }
 
-func NewService(db *sqlx.DB, hrisService *hris.Service, attendanceService *attendance.Service) *Service {
+func NewService(
+	db *sqlx.DB,
+	hrisService *hris.Service,
+	attendanceService *attendance.Service,
+	letterhead payslip.Letterhead,
+) *Service {
 	return &Service{
 		db:                NewDB(db),
 		hrisService:       hrisService,
 		attendanceService: attendanceService,
+		letterhead:        letterhead,
 	}
 }
 

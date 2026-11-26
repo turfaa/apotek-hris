@@ -33,7 +33,7 @@ var serveCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		srv := server.New(cfg.Server, db)
+		srv := server.New(cfg.Server, cfg.Pharmacy, db)
 
 		// Handle graceful shutdown
 		done := make(chan os.Signal, 1)
