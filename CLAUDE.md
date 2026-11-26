@@ -135,14 +135,15 @@ Each domain module (hris, attendance, salary) follows a consistent layered archi
 
 **Dependency flow**: Handler → Service → DB
 
-The `salary` module depends on both `hris` and `attendance` services for calculating total salary.
+The `salary` module depends on both `hris` and `attendance` services for calculating total salary. It also posts salary snapshots to the Vmedis journal (`journal_*.go`) through vmedis-proxy-api (`pkg/vmedisproxy`), HRIS's only outbound HTTP client. Its DB tests run against Postgres when `HRIS_TEST_POSTGRES_URL` is set (e.g. `postgres://postgres:test@localhost:55432/hris?sslmode=disable`), and are skipped otherwise.
 
 ### Key Architectural Patterns
 
 #### Configuration Management
 - Configuration files: `config/config.yaml` and `config/secret.yaml`
 - Multiple config files are merged via Viper's `MergeInConfig`
-- Can be overridden with environment variables (automatic via Viper)
+- `AutomaticEnv` is on, but there is no key replacer, so nested keys (e.g. `vmedis_proxy.base_url`) can't be set from env vars: put settings in `config.yaml`
+- Defaults for keys the files don't set are in `defaults` in `internal/config/config.go`
 - Config loading happens in commands, not in main.go
 
 #### Database Layer

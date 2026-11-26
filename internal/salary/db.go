@@ -225,24 +225,25 @@ func (d *DB) GetSnapshots(ctx context.Context, request GetSnapshotsRequest) ([]S
 	var args []any
 
 	if request.EmployeeID != nil {
-		filters = append(filters, "employee_id = ?")
+		filters = append(filters, "s.employee_id = ?")
 		args = append(args, *request.EmployeeID)
 	}
 
 	if request.Month != nil {
-		filters = append(filters, "month = ?")
+		filters = append(filters, "s.month = ?")
 		args = append(args, *request.Month)
 	}
 
-	filters = append(filters, "deleted_at IS NULL")
+	filters = append(filters, "s.deleted_at IS NULL")
 
 	filter := "WHERE " + strings.Join(filters, " AND ")
 
 	query := `
-		SELECT id, employee_id, month, salary, created_at, deleted_at
-		FROM salary_snapshots
+		SELECT s.id, s.employee_id, s.month, s.salary, s.created_at, s.deleted_at, ` + snapshotJournalStatusColumn + `
+		FROM salary_snapshots s
+		` + snapshotJournalStatusJoin + `
 		` + filter + `
-		ORDER BY id DESC
+		ORDER BY s.id DESC
 	`
 
 	query = d.db.Rebind(query)
@@ -267,9 +268,10 @@ func (d *DB) GetSnapshots(ctx context.Context, request GetSnapshotsRequest) ([]S
 
 func (d *DB) GetSnapshot(ctx context.Context, id int64) (Snapshot, error) {
 	query := `
-		SELECT id, employee_id, month, salary, created_at
-		FROM salary_snapshots
-		WHERE id = ? AND deleted_at IS NULL
+		SELECT s.id, s.employee_id, s.month, s.salary, s.created_at, ` + snapshotJournalStatusColumn + `
+		FROM salary_snapshots s
+		` + snapshotJournalStatusJoin + `
+		WHERE s.id = ? AND s.deleted_at IS NULL
 	`
 
 	query = d.db.Rebind(query)
@@ -306,17 +308,41 @@ func (d *DB) CreateSnapshot(ctx context.Context, employeeID int64, month timex.M
 	return snapshotDB.ToSnapshot()
 }
 
+// DeleteSnapshot soft-deletes the snapshot. It returns sql.ErrNoRows when the
+// snapshot doesn't exist (or was deleted), and ErrSnapshotPosted when it has
+// journal entries in Vmedis.
 func (d *DB) DeleteSnapshot(ctx context.Context, id int64) error {
-	query := `
-		UPDATE salary_snapshots SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?
-	`
+	return d.WithLockedSnapshot(ctx, id, func(tx *sqlx.Tx) error {
+		posted, err := d.HasJournalEntriesInVmedis(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		if posted {
+			return ErrSnapshotPosted
+		}
 
-	query = d.db.Rebind(query)
-	args := []any{id}
+		query := tx.Rebind(`UPDATE salary_snapshots SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL`)
+		if _, err := tx.ExecContext(ctx, query, id); err != nil {
+			return fmt.Errorf("tx.ExecContext: %w", err)
+		}
 
-	if _, err := d.db.ExecContext(ctx, query, args...); err != nil {
-		return fmt.Errorf("d.db.ExecContext: %w", err)
-	}
-
-	return nil
+		return nil
+	})
 }
+
+// snapshotJournalStatusJoin joins salary_snapshots s with the journal status
+// of each snapshot, selected by snapshotJournalStatusColumn. It follows
+// journalStatusOf.
+const snapshotJournalStatusJoin = `
+	LEFT JOIN LATERAL (
+		SELECT CASE
+			WHEN COUNT(*) FILTER (WHERE j.status IN ('posted', 'pending')) = 0 THEN 'none'
+			WHEN COUNT(*) FILTER (WHERE j.status <> 'posted') = 0 THEN 'posted'
+			ELSE 'partial'
+		END AS status
+		FROM salary_snapshot_journal_entries j
+		WHERE j.snapshot_id = s.id
+	) journal ON TRUE
+`
+
+const snapshotJournalStatusColumn = `journal.status AS journal_status`

@@ -14,6 +14,7 @@ import (
 	"github.com/turfaa/apotek-hris/internal/config"
 	"github.com/turfaa/apotek-hris/pkg/database"
 	"github.com/turfaa/apotek-hris/pkg/server"
+	"github.com/turfaa/apotek-hris/pkg/vmedisproxy"
 
 	"github.com/spf13/cobra"
 )
@@ -33,7 +34,7 @@ var serveCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		srv := server.New(cfg.Server, cfg.Pharmacy, db)
+		srv := server.New(cfg.Server, cfg.Pharmacy, cfg.Journal, vmedisproxy.New(cfg.VmedisProxy), db)
 
 		// Handle graceful shutdown
 		done := make(chan os.Signal, 1)

@@ -179,15 +179,19 @@ type Snapshot struct {
 	Month      timex.Month `json:"month"`
 	Salary     Salary      `json:"salary"`
 	CreatedAt  time.Time   `json:"createdAt"`
+	// JournalStatus is whether the snapshot is posted to the Vmedis journal:
+	// none, posted or partial.
+	JournalStatus string `json:"journalStatus"`
 }
 
 type SnapshotDB struct {
-	ID         int64       `db:"id"`
-	EmployeeID int64       `db:"employee_id"`
-	Month      timex.Month `db:"month"`
-	Salary     []byte      `db:"salary"`
-	CreatedAt  time.Time   `db:"created_at"`
-	DeletedAt  *time.Time  `db:"deleted_at"`
+	ID            int64       `db:"id"`
+	EmployeeID    int64       `db:"employee_id"`
+	Month         timex.Month `db:"month"`
+	Salary        []byte      `db:"salary"`
+	CreatedAt     time.Time   `db:"created_at"`
+	DeletedAt     *time.Time  `db:"deleted_at"`
+	JournalStatus *string     `db:"journal_status"`
 }
 
 func (s SnapshotDB) ToSnapshot() (Snapshot, error) {
@@ -196,12 +200,18 @@ func (s SnapshotDB) ToSnapshot() (Snapshot, error) {
 		return Snapshot{}, fmt.Errorf("unmarshal salary snapshot: %w", err)
 	}
 
+	journalStatus := JournalStatusNone
+	if s.JournalStatus != nil {
+		journalStatus = *s.JournalStatus
+	}
+
 	return Snapshot{
-		ID:         s.ID,
-		EmployeeID: s.EmployeeID,
-		Month:      s.Month,
-		Salary:     salary,
-		CreatedAt:  s.CreatedAt,
+		ID:            s.ID,
+		EmployeeID:    s.EmployeeID,
+		Month:         s.Month,
+		Salary:        salary,
+		CreatedAt:     s.CreatedAt,
+		JournalStatus: journalStatus,
 	}, nil
 }
 

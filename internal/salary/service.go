@@ -28,6 +28,11 @@ type Service struct {
 
 	// letterhead is printed on pay slips.
 	letterhead payslip.Letterhead
+
+	// journal and journalProxy post snapshots to the Vmedis journal. Posting
+	// is refused while either is not configured.
+	journal      JournalConfig
+	journalProxy JournalProxy
 }
 
 func NewService(
@@ -35,12 +40,16 @@ func NewService(
 	hrisService *hris.Service,
 	attendanceService *attendance.Service,
 	letterhead payslip.Letterhead,
+	journal JournalConfig,
+	journalProxy JournalProxy,
 ) *Service {
 	return &Service{
 		db:                NewDB(db),
 		hrisService:       hrisService,
 		attendanceService: attendanceService,
 		letterhead:        letterhead,
+		journal:           journal,
+		journalProxy:      journalProxy,
 	}
 }
 

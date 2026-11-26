@@ -319,6 +319,10 @@ func (h *Handler) DeleteSnapshot(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.DeleteSnapshot(r.Context(), idToDelete); err != nil {
+		if errors.Is(err, ErrSnapshotPosted) {
+			httpx.Error(w, ErrSnapshotPosted, http.StatusConflict)
+			return
+		}
 		httpServiceError(w, err)
 		return
 	}

@@ -24,6 +24,8 @@ func (h *Handler) registerSalaryRoutes(r chi.Router) {
 
 	r.Get(`/snapshots/slips.zip`, h.GetSnapshotSlipsZip)
 	r.Get(`/snapshots/{id:^\d+}/pdf`, h.GetSnapshotSlipPDF)
+	r.Get(`/snapshots/{id:^\d+}/journal`, h.GetSnapshotJournal)
+	r.Post(`/snapshots/{id:^\d+}/journal`, h.PostSnapshotJournal)
 	r.Get(`/snapshots/{id:^\d+}`, h.GetSnapshot)
 	r.Get(`/snapshots`, h.GetSnapshots)
 	r.Post(`/snapshots`, h.CreateSnapshot)

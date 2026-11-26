@@ -1281,7 +1281,10 @@ paths:
       tags:
         - Salary
       summary: Delete salary snapshot
-      description: Soft delete a salary snapshot
+      description: |
+        Soft delete a salary snapshot. A snapshot with journal entries posted
+        (or being posted) to Vmedis can't be deleted: fix the entries in
+        Vmedis instead.
       parameters:
         - name: id
           in: path
@@ -1290,10 +1293,16 @@ paths:
             type: integer
             format: int64
       responses:
-        '204':
+        '200':
           description: Snapshot deleted successfully
         '404':
-          description: Snapshot not found
+          description: Snapshot not found, or already deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: The snapshot has journal entries in Vmedis
           content:
             application/json:
               schema:
@@ -1354,6 +1363,119 @@ paths:
                 $ref: '#/components/schemas/Error'
         '503':
           description: The pharmacy details for the letterhead (`pharmacy` in the config) are not set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/salary/snapshots/{id}/journal:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: X-Email
+        in: header
+        required: true
+        description: The dashboard user's email. Sent to vmedis-proxy-api, which must know it as an admin, and recorded as the poster.
+        schema:
+          type: string
+      - name: X-Name
+        in: header
+        description: The dashboard user's name, percent-encoded (encodeURIComponent). Named in the keterangan; the email is used without it.
+        schema:
+          type: string
+    get:
+      tags:
+        - Salary
+      summary: Get a snapshot's Vmedis journal entries
+      description: |
+        The journal entries (Data Jurnal Keuangan) the snapshot posts to
+        Vmedis, merged with the ones recorded:
+
+        - a `salary` line, Bank (credit) → Gaji Karyawan (debit), of the
+          snapshot's Total Tanpa Utang;
+        - a `debt` line per component whose description contains "utang",
+          Piutang Pegawai (credit) → Bank (debit), of the component's absolute
+          total. One with a positive total (a loan paid out) is never
+          postable.
+
+        Every entry is dated the last day of the snapshot's month
+        (`journalDate`). Unposted lines show the keterangan they'd get when
+        posted by the requesting user; recorded ones show what was sent.
+      responses:
+        '200':
+          description: The snapshot's journal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotJournal'
+        '404':
+          description: Snapshot not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+        - Salary
+      summary: Post a snapshot to the Vmedis journal
+      description: |
+        The first time (journal status `none`), records and posts the salary
+        entry and one repayment entry per chosen utang component, through
+        vmedis-proxy-api. Once anything is posted, `debtComponentIndexes` is
+        ignored and only the entries that failed, or whose outcome is
+        unknown, are sent again; posted entries are never re-sent. Each
+        entry is sent with its own idempotency key
+        (`hris-snapshot-<id>-<kind>-<index>`), and an entry whose outcome is
+        unknown is looked up in Vmedis (by date, keterangan and amount)
+        before being sent again.
+
+        Responds with the journal after the attempt, whatever each entry's
+        outcome: check each line's `entry.status`. A month's salary of an
+        employee is posted from one snapshot only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostSnapshotJournalRequest'
+      responses:
+        '200':
+          description: The snapshot's journal after the attempt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotJournal'
+        '400':
+          description: Invalid request, e.g. a component that is not a postable utang, Total Tanpa Utang not above 0, or no X-Email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Snapshot not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Another snapshot of the employee's month is posted, or nothing is left to send
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [message]
+                properties:
+                  message:
+                    type: string
+                  otherSnapshotID:
+                    type: integer
+                    format: int64
+        '503':
+          description: The journal accounts or `vmedis_proxy.base_url` are not configured
           content:
             application/json:
               schema:
@@ -2056,12 +2178,121 @@ components:
         createdAt:
           type: string
           format: date-time
+        journalStatus:
+          $ref: '#/components/schemas/JournalStatus'
       required:
         - id
         - employeeID
         - month
         - salary
         - createdAt
+        - journalStatus
+
+    JournalStatus:
+      type: string
+      enum: [none, posted, partial]
+      description: |
+        Whether the snapshot is posted to the Vmedis journal: `none` (nothing
+        posted or being posted), `posted` (every recorded entry posted) or
+        `partial` (some posted or being posted, some failed or with an
+        unknown outcome).
+
+    PostSnapshotJournalRequest:
+      type: object
+      properties:
+        debtComponentIndexes:
+          type: array
+          description: Indexes in `salary.components` of the utang components to post repayments for.
+          items:
+            type: integer
+
+    SnapshotJournal:
+      type: object
+      required: [snapshotID, status, journalDate, snapshotCreatedAt, canPost, lines]
+      properties:
+        snapshotID:
+          type: integer
+          format: int64
+        status:
+          $ref: '#/components/schemas/JournalStatus'
+        postedBy:
+          type: [string, 'null']
+          description: Email of the admin who posted it.
+        postedByName:
+          type: [string, 'null']
+        postedAt:
+          type: [string, 'null']
+          format: date-time
+          description: When the first entry was posted.
+        journalDate:
+          type: string
+          format: date
+          description: The last day of the snapshot's month; every entry's date.
+        snapshotCreatedAt:
+          type: string
+          format: date-time
+        canPost:
+          type: boolean
+          description: Whether a POST would send anything.
+        blockedReason:
+          type: [string, 'null']
+        otherPostedSnapshotID:
+          type: [integer, 'null']
+          format: int64
+          description: Another snapshot of the employee's month that is posted, which blocks this one.
+        lines:
+          type: array
+          description: The salary line first, then the utang lines in component order.
+          items:
+            $ref: '#/components/schemas/SnapshotJournalLine'
+
+    SnapshotJournalLine:
+      type: object
+      required: [kind, description, creditAccount, debitAccount, amount, postable]
+      properties:
+        kind:
+          type: string
+          enum: [salary, debt]
+        componentIndex:
+          type: [integer, 'null']
+        componentDescription:
+          type: [string, 'null']
+        description:
+          type: string
+          description: The keterangan in Vmedis.
+          example: 'Gaji Budi Oktober 2026 (Snapshot #42, diposting oleh Ani)'
+        creditAccount:
+          type: string
+          example: '111004'
+        debitAccount:
+          type: string
+          example: '610002'
+        amount:
+          type: string
+          example: '3200000'
+        postable:
+          type: boolean
+        warning:
+          type: [string, 'null']
+        entry:
+          description: The recorded entry; null when the line wasn't posted.
+          oneOf:
+            - type: 'null'
+            - type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [pending, posted, failed]
+                  description: '`pending` with an `error` is an entry whose outcome is unknown.'
+                voucherNo:
+                  type: [string, 'null']
+                  description: The Vmedis No. Bukti.
+                error:
+                  type: [string, 'null']
+                postedAt:
+                  type: [string, 'null']
+                  format: date-time
 
     CreateSnapshotRequest:
       type: object

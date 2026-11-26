@@ -20,19 +20,24 @@ import (
 )
 
 type Server struct {
-	config     Config
-	letterhead payslip.Letterhead
-	db         *sqlx.DB
-	server     *http.Server
+	config       Config
+	letterhead   payslip.Letterhead
+	journal      salary.JournalConfig
+	journalProxy salary.JournalProxy
+	db           *sqlx.DB
+	server       *http.Server
 }
 
 // New returns a server. letterhead is printed on pay slips; when it is not
-// configured, pay slip PDFs are refused.
-func New(config Config, letterhead payslip.Letterhead, db *sqlx.DB) *Server {
+// configured, pay slip PDFs are refused. journal and journalProxy post salary
+// snapshots to the Vmedis journal.
+func New(config Config, letterhead payslip.Letterhead, journal salary.JournalConfig, journalProxy salary.JournalProxy, db *sqlx.DB) *Server {
 	return &Server{
-		config:     config,
-		letterhead: letterhead,
-		db:         db,
+		config:       config,
+		letterhead:   letterhead,
+		journal:      journal,
+		journalProxy: journalProxy,
+		db:           db,
 	}
 }
 
@@ -81,7 +86,7 @@ func (s *Server) setupRoutes(r *chi.Mux) {
 
 	hrisService := hris.NewService(s.db)
 	attendanceService := attendance.NewService(s.db)
-	salaryService := salary.NewService(s.db, hrisService, attendanceService, s.letterhead)
+	salaryService := salary.NewService(s.db, hrisService, attendanceService, s.letterhead, s.journal, s.journalProxy)
 
 	hrisHandler := hris.NewHandler(hrisService)
 	attendanceHandler := attendance.NewHandler(attendanceService, hrisService)

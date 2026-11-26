@@ -21,6 +21,11 @@ func periodName(year, month int) string {
 	return fmt.Sprintf("%s %d", monthNames[month-1], year)
 }
 
+// PeriodName returns the month in Indonesian, e.g. "Oktober 2026".
+func PeriodName(year, month int) string {
+	return periodName(year, month)
+}
+
 // rupiah formats an amount the Indonesian way: "Rp1.234.567", with ",50"
 // only when there is a fraction, and negatives in parentheses, e.g.
 // "(Rp50.000)", like Fee / (Penalti) on the dashboard.

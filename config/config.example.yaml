@@ -16,3 +16,15 @@ pharmacy:
   address: Jalan Contoh No. 1, Kota Contoh
   email: kontak@example.com
   phone: "0800000000"
+
+# vmedis-proxy-api, which salary snapshots are posted to the Vmedis journal
+# (Data Jurnal Keuangan) through.
+vmedis_proxy:
+  base_url: http://backend-server.vmedis/api
+
+# The Vmedis account codes (akkode) salary journal entries use.
+journal:
+  accounts:
+    bank: "111004"                # Bank OCBC
+    salary_expense: "610002"      # Gaji Karyawan
+    employee_receivable: "171001" # Piutang Pegawai
